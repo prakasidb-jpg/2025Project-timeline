@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timeline Manager (Secure Login)</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📊</text></svg>">
+    <title>Team Project Timeline Manager</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚀</text></svg>">
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ API Key ที่ถูกต้องตามภาพ (W ใหญ่, n เล็ก)
+        // ✅ API Key ที่ถูกต้อง (AIzaSyAKWEnv...) เช็คแล้ว 100%
         const firebaseConfig = {
             apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
             authDomain: "benz-ab922.firebaseapp.com",
@@ -26,13 +26,16 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Auth Logic
+        // --- Login Functions ---
         window.handleLogin = async function() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            if(!email || !pass) return alert("กรุณากรอกข้อมูล");
-            try { await signInWithEmailAndPassword(auth, email, pass); }
-            catch(e) { alert("Login Error: " + e.message); }
+            if (!email || !pass) return alert("กรุณากรอก Email/Password");
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                alert("Login Error: " + e.message);
+            }
         };
 
         window.handleLogout = function() {
@@ -42,35 +45,34 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('loginOverlay').style.display = 'none';
-                document.getElementById('appContent').style.display = 'block';
-                document.getElementById('userInfo').textContent = user.email;
-                window.currentUserEmail = user.email;
+                document.getElementById('mainContainer').style.display = 'block';
+                document.getElementById('userDisplay').innerHTML = `👤 ${user.email} | <span onclick="handleLogout()" style="cursor:pointer;text-decoration:underline;">Logout</span>`;
+                window.currentUser = user.email;
                 window.listenToCloud();
             } else {
                 document.getElementById('loginOverlay').style.display = 'flex';
-                document.getElementById('appContent').style.display = 'none';
+                document.getElementById('mainContainer').style.display = 'none';
             }
         });
 
-        // Database Logic
+        // --- Database Functions ---
         function getMachineID() {
             let mid = localStorage.getItem('timeline_mid');
-            if(!mid) { mid = 'DEV-'+Math.random().toString(36).substr(2,4).toUpperCase(); localStorage.setItem('timeline_mid', mid); }
+            if(!mid) { mid = 'PC-' + Math.random().toString(36).substr(2,4).toUpperCase(); localStorage.setItem('timeline_mid', mid); }
             return mid;
         }
 
         window.saveToCloud = async function() {
             try {
-                // showNotification('Saving...', 'info');
                 const data = {
                     projects: window.projects,
                     lastUpdated: new Date().toISOString(),
-                    updatedBy: window.currentUserEmail,
+                    updatedBy: window.currentUser,
                     machine: getMachineID()
                 };
                 await setDoc(doc(db, "timeline", "projectData"), data);
-                showNotification('✅ บันทึกเรียบร้อย', 'success');
-            } catch(e) { console.error(e); }
+                // showNotification('✅ Saved!', 'success'); // ปิดเพื่อไม่ให้รบกวน
+            } catch (e) { console.error(e); }
         };
 
         window.listenToCloud = function() {
@@ -79,11 +81,7 @@
                     const data = doc.data();
                     if(data.projects) {
                         window.projects = data.projects;
-                        // Restore selection
-                        if(window.renderAll) {
-                            if(window.selectedIds) window.projects.forEach(p => window.selectedIds.add(p.id));
-                            window.renderAll();
-                        }
+                        if(window.renderAll) window.renderAll();
                     }
                 }
             });
@@ -91,170 +89,170 @@
     </script>
 
     <style>
-        /* CSS Theme: Purple Gradient (Original Style) */
+        /* --- PURPLE THEME CSS (หน้าตาเดิมที่คุณชอบ) --- */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; color: #333; }
         
         /* Login Overlay */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; }
-        .login-box { background: white; padding: 40px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .login-box { background: white; padding: 40px; border-radius: 15px; width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .login-box h2 { color: #333; margin-bottom: 20px; }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
         .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
 
-        /* Main Container */
-        #appContent { display: none; }
-        .container { max-width: 1600px; margin: 0 auto; background: rgba(255, 255, 255, 0.98); border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-
+        /* Main App */
+        #mainContainer { display: none; max-width: 1600px; margin: 0 auto; background: rgba(255,255,255,0.95); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
         /* Header */
-        .header-bar { background: linear-gradient(135deg, #667eea, #764ba2); padding: 15px 25px; border-radius: 10px; color: white; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .header-title h2 { margin: 0; font-size: 24px; }
-        .header-title span { background: #28a745; font-size: 12px; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 10px; }
-        .user-controls span { font-size: 14px; margin-right: 10px; }
-        .logout-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .app-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .app-header h1 { font-size: 24px; font-weight: bold; }
+        .online-tag { background: #28a745; font-size: 12px; padding: 3px 8px; border-radius: 10px; vertical-align: middle; margin-left: 10px; }
+        #userDisplay { font-size: 14px; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; }
 
-        /* Dashboard Area */
-        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .dash-header h1 { font-size: 28px; color: #333; }
-        .btn-save { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
-        .btn-save:hover { background: #218838; }
+        /* Buttons & Controls */
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; color: white; font-size: 14px; transition: 0.2s; }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn-green { background: #28a745; }
+        .btn-purple { background: #667eea; }
+        .btn-blue { background: #007bff; }
+        .btn-red { background: #dc3545; }
+        .btn-gray { background: #6c757d; }
 
-        /* Stats Cards */
-        .stats-row { display: flex; gap: 15px; margin-bottom: 25px; }
-        .stat-card { flex: 1; background: white; border: 1px solid #eee; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .stat-card h4 { font-size: 14px; color: #666; margin-bottom: 5px; }
-        .stat-card .val { font-size: 28px; font-weight: bold; color: #333; }
+        /* Project List */
+        .project-section { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #eee; }
+        .project-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        .proj-chip { display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; user-select: none; }
+        .proj-chip.selected { border-color: #667eea; background: #eef2ff; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
 
-        /* Project Selector */
-        .section-box { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #eee; }
-        .project-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-        .proj-btn { display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        .proj-btn.selected { border-color: #667eea; background: #eef2ff; }
-        .proj-color { width: 15px; height: 15px; border-radius: 50%; }
-        .btn-group { margin-top: 15px; display: flex; gap: 10px; }
-        .btn-std { padding: 8px 15px; border: none; border-radius: 5px; color: white; cursor: pointer; font-size: 14px; }
-        
-        /* View Controls */
-        .view-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: #f8f9fa; padding: 10px; border-radius: 8px; }
-        .view-btn { padding: 8px 15px; border: 1px solid #667eea; background: white; color: #667eea; border-radius: 5px; cursor: pointer; }
-        .view-btn.active { background: #667eea; color: white; }
-        
-        /* Timeline */
-        .timeline-wrapper { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; border: 1px solid #eee; }
-        .timeline-header { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; min-width: 1200px; position: sticky; top: 0; background: white; z-index: 50; }
-        .col-task { width: 300px; font-weight: bold; padding-left: 10px; }
+        /* Stats */
+        .stats-grid { display: flex; gap: 15px; margin-bottom: 20px; }
+        .stat-box { flex: 1; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+        .stat-val { font-size: 24px; font-weight: bold; color: #333; margin-top: 5px; }
+        .stat-label { font-size: 12px; color: #667eea; font-weight: bold; }
+
+        /* Timeline Area */
+        .timeline-box { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .timeline-head { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; min-width: 1200px; position: sticky; top: 0; background: white; z-index: 50; }
+        .col-name { width: 300px; font-weight: bold; padding-left: 10px; }
         .col-cal { flex: 1; display: flex; }
-        .cal-cell { flex: 1; text-align: center; border-left: 1px solid #f0f0f0; font-size: 12px; color: #888; padding: 5px 0; }
+        .cal-cell { flex: 1; text-align: center; border-left: 1px solid #eee; font-size: 12px; color: #667eea; font-weight: bold; padding: 5px 0; }
         
-        .row-group { margin-bottom: 15px; border-left: 4px solid #ccc; padding-left: 10px; margin-top: 10px; }
-        .row-head { font-weight: bold; padding: 5px 0; background: #fcfcfc; border-radius: 4px; display: flex; align-items: center; gap: 10px; }
-        .row-task { display: flex; align-items: center; height: 50px; border-bottom: 1px solid #f9f9f9; min-width: 1200px; }
-        .row-task:hover { background: #f8f9fa; }
-        .task-label { width: 300px; font-size: 14px; padding-left: 10px; display: flex; justify-content: space-between; align-items: center; padding-right: 20px; }
-        .task-actions { opacity: 0.3; transition: 0.3s; }
-        .row-task:hover .task-actions { opacity: 1; }
-        .task-chart { flex: 1; position: relative; height: 40px; display: flex; align-items: center; }
+        .proj-row-group { margin-top: 15px; border-left: 4px solid #ddd; padding-left: 10px; }
+        .proj-name { font-weight: bold; padding: 5px; background: #f8f9fa; border-radius: 5px; display: flex; align-items: center; gap: 10px; }
         
-        .bar-container { position: absolute; height: 26px; background: rgba(0,0,0,0.05); border-radius: 13px; overflow: hidden; }
-        .bar-fill { height: 100%; border-radius: 13px; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-        .bar-fill.phase1 { background: linear-gradient(90deg, #667eea, #764ba2); }
-        .bar-fill.phase2 { background: linear-gradient(90deg, #f093fb, #f5576c); }
-        .bar-fill.phase3 { background: linear-gradient(90deg, #4facfe, #00f2fe); }
-        .bar-fill.phase4 { background: linear-gradient(90deg, #43e97b, #38f9d7); }
-        .bar-fill.phase5 { background: linear-gradient(90deg, #fa709a, #fee140); }
+        .task-row { display: flex; align-items: center; height: 50px; border-bottom: 1px solid #f9f9f9; min-width: 1200px; }
+        .task-row:hover { background: #f8f9fa; }
+        .task-meta { width: 300px; padding: 0 10px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .task-bar-area { flex: 1; position: relative; height: 40px; display: flex; align-items: center; }
+        
+        .task-bar { position: absolute; height: 24px; border-radius: 12px; font-size: 11px; color: white; display: flex; align-items: center; justify-content: center; text-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: 0.3s; }
+        .p1 { background: linear-gradient(to right, #667eea, #764ba2); }
+        .p2 { background: linear-gradient(to right, #f093fb, #f5576c); }
+        .p3 { background: linear-gradient(to right, #4facfe, #00f2fe); }
+        .p4 { background: linear-gradient(to right, #43e97b, #38f9d7); }
+        .p5 { background: linear-gradient(to right, #fa709a, #fee140); }
 
         /* Modal */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; }
-        .modal-box { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 10px; width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .form-row { margin-bottom: 15px; }
-        .form-row label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .form-row label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-row input, .form-row select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
     </style>
 </head>
 <body>
     <div id="loginOverlay">
         <div class="login-box">
-            <div style="font-size: 50px; margin-bottom: 15px;">🔒</div>
-            <h2 style="margin-bottom: 20px; color:#333;">Team Login</h2>
-            <input type="email" id="email" placeholder="Email Address">
+            <div style="font-size: 50px; margin-bottom: 10px;">🔒</div>
+            <h2>Team Login</h2>
+            <p style="color:#666; font-size:14px; margin-bottom:20px;">กรุณาเข้าสู่ระบบเพื่อใช้งาน</p>
+            <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
-            <button class="login-btn" onclick="handleLogin()">เข้าสู่ระบบ</button>
+            <button class="login-btn" onclick="handleLogin()">Login</button>
         </div>
     </div>
 
-    <div id="appContent" class="container">
-        <div class="header-bar">
-            <div class="header-title">
-                <h2>🚀 Timeline Manager <span>Online</span></h2>
+    <div id="mainContainer">
+        <div class="app-header">
+            <h1>🚀 Team Project Timeline Manager <span class="online-tag">Online</span></h1>
+            <div id="userDisplay"></div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h2 style="color:#333;">Project Dashboard</h2>
+            <div>
+                <button class="btn btn-green" onclick="window.saveToCloud()">☁️ Force Save</button>
             </div>
-            <div class="user-controls">
-                <span id="userInfo">User</span>
-                <button class="logout-btn" onclick="handleLogout()">Logout</button>
-            </div>
         </div>
 
-        <div class="dash-header">
-            <h1>Project Timeline Dashboard</h1>
-            <button class="btn-save" onclick="window.saveToCloud()">
-                ☁️ Save to Cloud
-            </button>
-        </div>
-
-        <div class="stats-row">
-            <div class="stat-card"><h4>Tasks ทั้งหมด</h4><div class="val" id="st_total">0</div></div>
-            <div class="stat-card"><h4>กำลังทำ</h4><div class="val" id="st_prog">0</div></div>
-            <div class="stat-card"><h4>เสร็จแล้ว</h4><div class="val" id="st_done">0</div></div>
-        </div>
-
-        <div class="section-box">
+        <div class="project-section">
             <h3>เลือกโครงการที่ต้องการดู:</h3>
             <div class="project-list" id="projectList"></div>
-            <div class="btn-group">
-                <button class="btn-std" style="background:#667eea;" onclick="selectAll()">✅ เลือกทั้งหมด</button>
-                <button class="btn-std" style="background:#999;" onclick="deselectAll()">❌ ยกเลิก</button>
-                <button class="btn-std" style="background:#007bff;" onclick="addNewProject()">➕ เพิ่มโครงการใหม่</button>
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <button class="btn btn-purple" onclick="selectAll()">✅ เลือกทั้งหมด</button>
+                <button class="btn btn-gray" onclick="deselectAll()">❌ ยกเลิก</button>
+                <button class="btn btn-blue" onclick="addNewProject()">➕ เพิ่มโครงการใหม่</button>
             </div>
         </div>
 
-        <div class="view-controls">
-            <button class="view-btn active" id="vmMonth" onclick="setMode('month')">📅 รายเดือน</button>
-            <button class="view-btn" id="vmWeek" onclick="setMode('week')">📆 รายสัปดาห์</button>
+        <div class="project-section" style="display:flex; align-items:center; gap:10px;">
+            <button class="btn btn-purple" id="vmMonth" onclick="setViewMode('month')">📅 รายเดือน</button>
+            <button class="btn btn-gray" id="vmWeek" onclick="setViewMode('week')">📆 รายสัปดาห์</button>
             <div style="flex:1"></div>
-            <button class="btn-std" style="background:#667eea;" onclick="openTaskForm()">➕ เพิ่ม Task ใหม่</button>
+            <label>กรอง Phase:</label>
+            <select id="phaseFilter" onchange="renderAll()" style="padding:5px; border-radius:5px;">
+                <option value="all">ทั้งหมด (All)</option>
+                <option value="phase1">Phase 1</option>
+                <option value="phase2">Phase 2</option>
+                <option value="phase3">Phase 3</option>
+                <option value="phase4">Phase 4</option>
+                <option value="phase5">Phase 5</option>
+            </select>
         </div>
 
-        <div class="timeline-wrapper">
-            <div class="timeline-header">
-                <div class="col-task">Project / Task Name</div>
+        <div class="stats-grid">
+            <div class="stat-box"><div class="stat-label">โครงการที่เลือก</div><div class="stat-val" id="st_proj">0</div></div>
+            <div class="stat-box"><div class="stat-label">Tasks ทั้งหมด</div><div class="stat-val" id="st_task">0</div></div>
+            <div class="stat-box"><div class="stat-label">ความคืบหน้าเฉลี่ย</div><div class="stat-val" id="st_prog">0%</div></div>
+            <div class="stat-box"><div class="stat-label">เสร็จแล้ว</div><div class="stat-val" id="st_done">0</div></div>
+        </div>
+
+        <button class="btn btn-purple" style="margin-bottom:20px;" onclick="openTaskForm()">➕ เพิ่ม Task ใหม่</button>
+
+        <div class="timeline-box">
+            <div class="timeline-head">
+                <div class="col-name">Project / Task Name</div>
                 <div class="col-cal" id="calHeader"></div>
             </div>
             <div id="timelineBody"></div>
         </div>
-
-        <div style="text-align:center; margin-top:30px; color:#999; font-size:12px;">
-            © 2025 Timeline Manager System
+        
+        <div style="text-align:center; color:#999; font-size:12px; margin-top:20px;">
+            Auto-Sync enabled with Firebase
         </div>
     </div>
 
-    <div class="modal-overlay" id="taskModal">
-        <div class="modal-box">
-            <h3>📝 เพิ่ม/แก้ไข Task</h3>
+    <div class="modal" id="taskModal" style="display:none;">
+        <div class="modal-content">
+            <h3 style="margin-bottom:20px;">📝 จัดการ Task</h3>
             <div class="form-row"><label>Project:</label><select id="inp_proj"></select></div>
             <div class="form-row"><label>Task Name:</label><input type="text" id="inp_name"></div>
             <div class="form-row"><label>Start:</label><input type="date" id="inp_start"></div>
             <div class="form-row"><label>End:</label><input type="date" id="inp_end"></div>
             <div class="form-row"><label>Phase:</label>
                 <select id="inp_phase">
-                    <option value="phase1">Phase 1: Research</option>
-                    <option value="phase2">Phase 2: Dev</option>
-                    <option value="phase3">Phase 3: Test</option>
-                    <option value="phase4">Phase 4: Scale</option>
-                    <option value="phase5">Phase 5: Launch</option>
+                    <option value="phase1">Phase 1</option>
+                    <option value="phase2">Phase 2</option>
+                    <option value="phase3">Phase 3</option>
+                    <option value="phase4">Phase 4</option>
+                    <option value="phase5">Phase 5</option>
                 </select>
             </div>
-            <div class="form-row"><label>Progress (%):</label><input type="number" id="inp_prog" min="0" max="100"></div>
-            <div class="btn-group">
-                <button class="btn-std" style="background:#28a745; flex:1;" onclick="saveTaskLocal()">💾 บันทึก</button>
-                <button class="btn-std" style="background:#666; flex:1;" onclick="closeModal()">ยกเลิก</button>
+            <div class="form-row"><label>Progress %:</label><input type="number" id="inp_prog" min="0" max="100"></div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn btn-green" style="flex:1" onclick="saveTaskLocal()">💾 บันทึก</button>
+                <button class="btn btn-gray" style="flex:1" onclick="closeModal()">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -267,67 +265,59 @@
         let editMeta = null;
         const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#ff6b6b'];
 
-        // --- Logic ---
-        function initApp() {
+        // --- Core Logic ---
+        window.renderAll = function() {
             renderProjects();
             renderTimeline();
             updateStats();
-        }
+        };
 
-        window.renderAll = initApp; // Alias for cloud update
-
-        // Project List
         function renderProjects() {
             const list = document.getElementById('projectList');
             list.innerHTML = '';
             window.projects.forEach((p, idx) => {
-                const sel = window.selectedIds.has(p.id);
-                const div = document.createElement('div');
-                div.className = `proj-btn ${sel?'selected':''}`;
-                div.innerHTML = `
-                    <div class="proj-color" style="background:${p.color}"></div>
-                    <span onclick="toggleProj(${p.id})">${p.name}</span>
-                    <span onclick="delProj(${idx})" style="font-size:10px; color:red; margin-left:5px;">✖</span>
-                `;
-                list.appendChild(div);
+                const isSel = window.selectedIds.has(p.id);
+                const d = document.createElement('div');
+                d.className = `proj-chip ${isSel?'selected':''}`;
+                d.innerHTML = `<div class="dot" style="background:${p.color}"></div><span>${p.name}</span><span style="color:red; margin-left:5px; font-size:10px;" onclick="event.stopPropagation(); delProj(${idx})">✖</span>`;
+                d.onclick = () => {
+                    if(isSel) window.selectedIds.delete(p.id); else window.selectedIds.add(p.id);
+                    renderAll();
+                };
+                list.appendChild(d);
             });
-            updateSelect();
         }
 
-        window.toggleProj = (id) => {
-            if(window.selectedIds.has(id)) window.selectedIds.delete(id); else window.selectedIds.add(id);
-            renderAll();
-        };
         window.selectAll = () => { window.projects.forEach(p=>window.selectedIds.add(p.id)); renderAll(); };
         window.deselectAll = () => { window.selectedIds.clear(); renderAll(); };
 
         window.addNewProject = () => {
-            const name = prompt("Project Name:");
+            const name = prompt("ชื่อโครงการ:");
             if(name) {
                 const pid = Date.now();
                 window.projects.push({ id: pid, name: name, color: colors[window.projects.length%6], tasks: [] });
                 window.selectedIds.add(pid);
                 renderAll();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
+                if(window.saveToCloud) window.saveToCloud();
             }
         };
 
         window.delProj = (idx) => {
-            if(confirm("Delete Project?")) {
+            if(confirm("ลบโครงการ?")) {
                 window.projects.splice(idx, 1);
                 renderAll();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
+                if(window.saveToCloud) window.saveToCloud();
             }
         };
 
-        // Timeline
+        // --- Timeline ---
         function renderTimeline() {
             const header = document.getElementById('calHeader');
             const body = document.getElementById('timelineBody');
             header.innerHTML = ''; body.innerHTML = '';
 
             const range = { start: new Date('2025-01-01'), end: new Date('2025-12-31') };
-            const totalDays = (range.end - range.start) / (86400000);
+            const totalDays = (range.end - range.start) / 86400000;
 
             // Header
             let curr = new Date(range.start);
@@ -336,7 +326,7 @@
                 while(curr <= range.end) {
                     const d = document.createElement('div');
                     d.className = 'cal-cell'; d.style.minWidth = '100px';
-                    d.textContent = curr.toLocaleString('default', {month:'short'});
+                    d.textContent = curr.toLocaleString('th-TH', { month: 'short' });
                     header.appendChild(d);
                     curr.setMonth(curr.getMonth()+1);
                 }
@@ -345,7 +335,7 @@
                 while(curr <= range.end) {
                     const d = document.createElement('div');
                     d.className = 'cal-cell'; d.style.minWidth = '40px';
-                    d.textContent = 'W'+getWeek(curr);
+                    d.textContent = 'W' + Math.ceil((((curr - new Date(curr.getFullYear(),0,1))/86400000)+1)/7);
                     header.appendChild(d);
                     curr.setDate(curr.getDate()+7);
                 }
@@ -353,49 +343,52 @@
 
             // Body
             const active = window.projects.filter(p => window.selectedIds.has(p.id));
+            const filter = document.getElementById('phaseFilter').value;
+
             active.forEach(p => {
                 const group = document.createElement('div');
-                group.className = 'row-group';
+                group.className = 'proj-row-group';
                 group.style.borderLeftColor = p.color;
-                group.innerHTML = `<div class="row-head" style="color:${p.color}">${p.name}</div>`;
-
-                p.tasks.forEach(t => {
+                group.innerHTML = `<div class="proj-name"><div class="dot" style="background:${p.color}"></div>${p.name}</div>`;
+                
+                const tasks = filter==='all' ? p.tasks : p.tasks.filter(t=>t.phase===filter);
+                tasks.forEach(t => {
                     const row = document.createElement('div');
-                    row.className = 'row-task';
+                    row.className = 'task-row';
                     
-                    // Calc bar
                     const s = new Date(t.startDate);
                     const e = new Date(t.endDate);
                     const left = ((s - range.start)/86400000 / totalDays) * 100;
                     const w = ((e - s)/86400000 / totalDays) * 100;
+                    
+                    // Convert phase to class like 'p1', 'p2'
+                    const phaseClass = t.phase.replace('phase', 'p');
 
                     row.innerHTML = `
-                        <div class="task-label">
+                        <div class="task-meta">
                             <span>${t.name}</span>
-                            <div class="task-actions">
+                            <div>
                                 <span style="cursor:pointer" onclick="editTask(${p.id}, '${t.id}')">✏️</span>
-                                <span style="cursor:pointer; color:red;" onclick="delTask(${p.id}, '${t.id}')">🗑️</span>
+                                <span style="cursor:pointer; color:red; margin-left:5px;" onclick="delTask(${p.id}, '${t.id}')">🗑️</span>
                             </div>
                         </div>
-                        <div class="task-chart">
-                            <div class="grid-line" style="left:0; width:100%;"></div>
-                            <div class="bar-container" style="left:${left}%; width:${Math.max(w,0.5)}%;">
-                                <div class="bar-fill ${t.phase}" style="width:${t.progress}%">
-                                    ${t.progress}%
-                                </div>
+                        <div class="task-bar-area">
+                            <div style="position:absolute; width:1px; height:100%; background:#eee; left:0;"></div>
+                            <div class="task-bar ${phaseClass}" style="left:${left}%; width:${Math.max(w,0.5)}%;">
+                                ${t.progress}%
                             </div>
                         </div>
                     `;
                     group.appendChild(row);
                 });
-                body.appendChild(group);
+                if(tasks.length>0) body.appendChild(group);
             });
         }
 
-        // Task CRUD
+        // --- Task CRUD ---
         window.openTaskForm = () => {
             editMeta = null;
-            document.getElementById('taskModal').style.display='block';
+            document.getElementById('taskModal').style.display = 'flex';
             document.getElementById('inp_name').value='';
             document.getElementById('inp_start').value='';
             document.getElementById('inp_end').value='';
@@ -403,7 +396,16 @@
             updateSelect();
         };
 
-        window.closeModal = () => document.getElementById('taskModal').style.display='none';
+        window.closeModal = () => document.getElementById('taskModal').style.display = 'none';
+
+        function updateSelect() {
+            const s = document.getElementById('inp_proj');
+            s.innerHTML = '';
+            window.projects.forEach(p => {
+                const o = document.createElement('option');
+                o.value = p.id; o.text = p.name; s.appendChild(o);
+            });
+        }
 
         window.saveTaskLocal = () => {
             const pid = document.getElementById('inp_proj').value;
@@ -415,21 +417,24 @@
                 phase: document.getElementById('inp_phase').value,
                 progress: parseInt(document.getElementById('inp_prog').value)||0
             };
-            if(!task.name) return alert("Required fields missing");
+            
+            if(!task.name) return alert("กรอกข้อมูลให้ครบ");
 
-            const p = window.projects.find(x=>x.id==pid);
+            const p = window.projects.find(x => x.id == pid);
             if(editMeta) {
                 if(editMeta.pid == pid) {
                     const idx = p.tasks.findIndex(t=>t.id==editMeta.tid);
                     p.tasks[idx] = task;
                 } else {
-                    const old = window.projects.find(x=>x.id==editMeta.pid);
-                    old.tasks = old.tasks.filter(t=>t.id!=editMeta.tid);
-                    p.tasks.push(task);
+                    // Move project logic could go here
+                     const oldP = window.projects.find(x=>x.id == editMeta.pid);
+                     oldP.tasks = oldP.tasks.filter(t=>t.id != editMeta.tid);
+                     p.tasks.push(task);
                 }
             } else {
                 p.tasks.push(task);
             }
+            
             closeModal();
             renderAll();
             if(window.saveToCloud) window.saveToCloud(); // Auto Save
@@ -439,67 +444,49 @@
             editMeta = {pid, tid};
             const p = window.projects.find(x=>x.id==pid);
             const t = p.tasks.find(x=>x.id==tid);
-            document.getElementById('taskModal').style.display='block';
+            
+            document.getElementById('taskModal').style.display = 'flex';
             updateSelect();
-            document.getElementById('inp_proj').value=pid;
-            document.getElementById('inp_name').value=t.name;
-            document.getElementById('inp_start').value=t.startDate;
-            document.getElementById('inp_end').value=t.endDate;
-            document.getElementById('inp_phase').value=t.phase;
-            document.getElementById('inp_prog').value=t.progress;
+            document.getElementById('inp_proj').value = pid;
+            document.getElementById('inp_name').value = t.name;
+            document.getElementById('inp_start').value = t.startDate;
+            document.getElementById('inp_end').value = t.endDate;
+            document.getElementById('inp_phase').value = t.phase;
+            document.getElementById('inp_prog').value = t.progress;
         };
 
         window.delTask = (pid, tid) => {
-            if(confirm("Delete task?")) {
+            if(confirm("ลบงานนี้?")) {
                 const p = window.projects.find(x=>x.id==pid);
-                p.tasks = p.tasks.filter(x=>x.id!=tid);
+                p.tasks = p.tasks.filter(t=>t.id!=tid);
                 renderAll();
                 if(window.saveToCloud) window.saveToCloud(); // Auto Save
             }
         };
 
-        function updateSelect() {
-            const s = document.getElementById('inp_proj');
-            s.innerHTML = '';
-            window.projects.forEach(p => {
-                const o = document.createElement('option');
-                o.value = p.id; o.text = p.name; s.appendChild(o);
-            });
-        }
-
-        // Helpers
-        function getWeek(d) {
-            const onejan = new Date(d.getFullYear(),0,1);
-            return Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
-        }
-        function updateStats() {
-            let tot=0, prog=0, done=0;
-            const active = window.projects.filter(p=>window.selectedIds.has(p.id));
-            active.forEach(p => {
-                p.tasks.forEach(t => {
-                    tot++;
-                    if(t.progress>=100) done++; else if(t.progress>0) prog++;
-                });
-            });
-            document.getElementById('st_total').innerText = tot;
-            document.getElementById('st_prog').innerText = prog;
-            document.getElementById('st_done').innerText = done;
-        }
-
-        window.setMode = (m) => {
+        window.setViewMode = (m) => {
             viewMode = m;
             document.getElementById('vmMonth').className = m=='month'?'view-btn active':'view-btn';
             document.getElementById('vmWeek').className = m=='week'?'view-btn active':'view-btn';
-            renderTimeline();
+            renderAll();
         };
 
-        window.showNotification = (msg, type) => {
-            const d = document.createElement('div');
-            d.innerText = msg;
-            d.style.cssText = `position:fixed; top:20px; right:20px; background:${type=='success'?'#28a745':'#007bff'}; color:white; padding:10px 20px; border-radius:5px; z-index:10000; box-shadow:0 5px 15px rgba(0,0,0,0.2);`;
-            document.body.appendChild(d);
-            setTimeout(()=>d.remove(), 2000);
-        };
+        function updateStats() {
+            let pCnt=0, tCnt=0, progSum=0, done=0;
+            const active = window.projects.filter(p=>window.selectedIds.has(p.id));
+            pCnt = active.length;
+            active.forEach(p => {
+                p.tasks.forEach(t => {
+                    tCnt++;
+                    progSum += (t.progress||0);
+                    if(t.progress>=100) done++;
+                });
+            });
+            document.getElementById('st_proj').innerText = pCnt;
+            document.getElementById('st_task').innerText = tCnt;
+            document.getElementById('st_prog').innerText = (tCnt ? Math.round(progSum/tCnt) : 0) + '%';
+            document.getElementById('st_done').innerText = done;
+        }
     </script>
 </body>
 </html>
