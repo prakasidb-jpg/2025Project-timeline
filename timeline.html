@@ -11,7 +11,7 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ แก้ไข API Key ให้ถูกต้องเป๊ะๆ (จากรูปภาพต้นฉบับ)
+        // ✅ แก้ไข API Key ให้ถูกต้องเป๊ะๆ (ตัว W ใหญ่)
         const firebaseConfig = {
             apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
             authDomain: "benz-ab922.firebaseapp.com",
@@ -30,9 +30,11 @@
         window.handleLogin = async function() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
+            if (!email || !pass) { alert('กรุณากรอก Email และ Password'); return; }
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (error) {
+                console.error("Login Error:", error);
                 alert('❌ ล็อกอินไม่ผ่าน: ' + error.message);
             }
         };
@@ -83,7 +85,7 @@
                 showNotification(`✅ บันทึกแล้ว!`, 'success');
             } catch (e) {
                 console.error("Error: ", e);
-                // alert('❌ Error: ' + e.message); // ปิด Alert รบกวน
+                // alert('❌ Error: ' + e.message); // ปิด Alert รบกวนเวลา Auto-save
             }
         };
 
@@ -318,6 +320,7 @@
     </div>
     
     <script>
+        // ✅ Restore Full Logic & Add Auto-Save
         window.projects = [];
         window.selectedProjectIds = new Set();
         let currentEditingTask = null;
