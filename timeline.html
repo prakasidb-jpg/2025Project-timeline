@@ -3,38 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Project Timeline Manager</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚀</text></svg>">
+    <title>Timeline Manager</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📊</text></svg>">
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ API Key ที่ถูกต้อง (AIzaSyAKWEnv...) เช็คแล้ว 100%
         const firebaseConfig = {
-  apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
-  authDomain: "benz-ab922.firebaseapp.com",
-  projectId: "benz-ab922",
-  storageBucket: "benz-ab922.firebasestorage.app",
-  messagingSenderId: "746873956854",
-  appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
-  measurementId: "G-EBYCR340BL"
+            apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
+            authDomain: "benz-ab922.firebaseapp.com",
+            projectId: "benz-ab922",
+            storageBucket: "benz-ab922.firebasestorage.app",
+            messagingSenderId: "746873956854",
+            appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
+            measurementId: "G-EBYCR340BL"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- Login Functions ---
         window.handleLogin = async function() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            if (!email || !pass) return alert("กรุณากรอก Email/Password");
+            if (!email || !pass) {
+                alert('กรุณากรอก Email และ Password');
+                return;
+            }
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-            } catch (e) {
-                alert("Login Error: " + e.message);
+            } catch (error) {
+                console.error(error);
+                alert('Login Failed: ' + error.message);
             }
         };
 
@@ -48,40 +50,56 @@
                 document.getElementById('mainContainer').style.display = 'block';
                 document.getElementById('userDisplay').innerHTML = `👤 ${user.email} | <span onclick="handleLogout()" style="cursor:pointer;text-decoration:underline;">Logout</span>`;
                 window.currentUser = user.email;
-                window.listenToCloud();
+                window.listenToCloud(); 
             } else {
                 document.getElementById('loginOverlay').style.display = 'flex';
                 document.getElementById('mainContainer').style.display = 'none';
             }
         });
 
-        // --- Database Functions ---
         function getMachineID() {
-            let mid = localStorage.getItem('timeline_mid');
-            if(!mid) { mid = 'PC-' + Math.random().toString(36).substr(2,4).toUpperCase(); localStorage.setItem('timeline_mid', mid); }
-            return mid;
+            let machineId = localStorage.getItem('timeline_machine_id');
+            if (!machineId) {
+                const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+                machineId = `Device-${randomStr}`;
+                localStorage.setItem('timeline_machine_id', machineId);
+            }
+            return machineId;
         }
 
         window.saveToCloud = async function() {
             try {
-                const data = {
+                const machineID = getMachineID();
+                const dataToSave = {
                     projects: window.projects,
                     lastUpdated: new Date().toISOString(),
-                    updatedBy: window.currentUser,
-                    machine: getMachineID()
+                    updatedByDevice: machineID,
+                    updatedByEmail: window.currentUser
                 };
-                await setDoc(doc(db, "timeline", "projectData"), data);
-                // showNotification('✅ Saved!', 'success'); // ปิดเพื่อไม่ให้รบกวน
-            } catch (e) { console.error(e); }
+                await setDoc(doc(db, "timeline", "projectData"), dataToSave);
+                
+                const notif = document.createElement('div');
+                notif.textContent = '✅ บันทึกแล้ว';
+                notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#28a745;color:white;padding:10px 20px;border-radius:5px;z-index:9999;box-shadow:0 2px 10px rgba(0,0,0,0.2);font-family:sans-serif;';
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 2000);
+            } catch (e) {
+                console.error("Save Error:", e);
+            }
         };
 
         window.listenToCloud = function() {
-            onSnapshot(doc(db, "timeline", "projectData"), (doc) => {
-                if(doc.exists()) {
-                    const data = doc.data();
-                    if(data.projects) {
+            onSnapshot(doc(db, "timeline", "projectData"), (docSnapshot) => {
+                if (docSnapshot.exists()) {
+                    const data = docSnapshot.data();
+                    if (data.projects) {
                         window.projects = data.projects;
-                        if(window.renderAll) window.renderAll();
+                        if (window.renderAll) {
+                            if(window.selectedIds) {
+                                window.projects.forEach(p => window.selectedIds.add(p.id));
+                            }
+                            window.renderAll();
+                        }
                     }
                 }
             });
@@ -89,27 +107,22 @@
     </script>
 
     <style>
-        /* --- PURPLE THEME CSS (หน้าตาเดิมที่คุณชอบ) --- */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; color: #333; }
         
-        /* Login Overlay */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; }
         .login-box { background: white; padding: 40px; border-radius: 15px; width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         .login-box h2 { color: #333; margin-bottom: 20px; }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
         .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
 
-        /* Main App */
         #mainContainer { display: none; max-width: 1600px; margin: 0 auto; background: rgba(255,255,255,0.95); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         
-        /* Header */
         .app-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .app-header h1 { font-size: 24px; font-weight: bold; }
         .online-tag { background: #28a745; font-size: 12px; padding: 3px 8px; border-radius: 10px; vertical-align: middle; margin-left: 10px; }
         #userDisplay { font-size: 14px; background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; }
 
-        /* Buttons & Controls */
         .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; color: white; font-size: 14px; transition: 0.2s; }
         .btn:hover { transform: translateY(-2px); opacity: 0.9; }
         .btn-green { background: #28a745; }
@@ -118,20 +131,17 @@
         .btn-red { background: #dc3545; }
         .btn-gray { background: #6c757d; }
 
-        /* Project List */
         .project-section { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #eee; }
         .project-list { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
         .proj-chip { display: flex; align-items: center; gap: 8px; padding: 8px 15px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; user-select: none; }
         .proj-chip.selected { border-color: #667eea; background: #eef2ff; }
         .dot { width: 12px; height: 12px; border-radius: 50%; }
 
-        /* Stats */
-        .stats-grid { display: flex; gap: 15px; margin-bottom: 20px; }
-        .stat-box { flex: 1; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; }
+        .stats-grid { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-box { flex: 1; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; min-width: 150px; }
         .stat-val { font-size: 24px; font-weight: bold; color: #333; margin-top: 5px; }
         .stat-label { font-size: 12px; color: #667eea; font-weight: bold; }
 
-        /* Timeline Area */
         .timeline-box { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .timeline-head { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; min-width: 1200px; position: sticky; top: 0; background: white; z-index: 50; }
         .col-name { width: 300px; font-weight: bold; padding-left: 10px; }
@@ -153,7 +163,6 @@
         .p4 { background: linear-gradient(to right, #43e97b, #38f9d7); }
         .p5 { background: linear-gradient(to right, #fa709a, #fee140); }
 
-        /* Modal */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 25px; border-radius: 10px; width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .form-row { margin-bottom: 15px; }
@@ -196,7 +205,7 @@
             </div>
         </div>
 
-        <div class="project-section" style="display:flex; align-items:center; gap:10px;">
+        <div class="project-section" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <button class="btn btn-purple" id="vmMonth" onclick="setViewMode('month')">📅 รายเดือน</button>
             <button class="btn btn-gray" id="vmWeek" onclick="setViewMode('week')">📆 รายสัปดาห์</button>
             <div style="flex:1"></div>
@@ -258,14 +267,12 @@
     </div>
 
     <script>
-        // Data & State
         window.projects = [];
         window.selectedIds = new Set();
         let viewMode = 'month';
         let editMeta = null;
         const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#ff6b6b'];
 
-        // --- Core Logic ---
         window.renderAll = function() {
             renderProjects();
             renderTimeline();
@@ -310,16 +317,14 @@
             }
         };
 
-        // --- Timeline ---
         function renderTimeline() {
             const header = document.getElementById('calHeader');
             const body = document.getElementById('timelineBody');
             header.innerHTML = ''; body.innerHTML = '';
 
             const range = { start: new Date('2025-01-01'), end: new Date('2025-12-31') };
-            const totalDays = (range.end - range.start) / 86400000;
+            const totalDays = (range.end - range.start) / (86400000);
 
-            // Header
             let curr = new Date(range.start);
             if(viewMode === 'month') {
                 curr.setDate(1);
@@ -341,7 +346,6 @@
                 }
             }
 
-            // Body
             const active = window.projects.filter(p => window.selectedIds.has(p.id));
             const filter = document.getElementById('phaseFilter').value;
 
@@ -361,7 +365,6 @@
                     const left = ((s - range.start)/86400000 / totalDays) * 100;
                     const w = ((e - s)/86400000 / totalDays) * 100;
                     
-                    // Convert phase to class like 'p1', 'p2'
                     const phaseClass = t.phase.replace('phase', 'p');
 
                     row.innerHTML = `
@@ -385,7 +388,6 @@
             });
         }
 
-        // --- Task CRUD ---
         window.openTaskForm = () => {
             editMeta = null;
             document.getElementById('taskModal').style.display = 'flex';
@@ -426,7 +428,6 @@
                     const idx = p.tasks.findIndex(t=>t.id==editMeta.tid);
                     p.tasks[idx] = task;
                 } else {
-                    // Move project logic could go here
                      const oldP = window.projects.find(x=>x.id == editMeta.pid);
                      oldP.tasks = oldP.tasks.filter(t=>t.id != editMeta.tid);
                      p.tasks.push(task);
@@ -437,7 +438,7 @@
             
             closeModal();
             renderAll();
-            if(window.saveToCloud) window.saveToCloud(); // Auto Save
+            if(window.saveToCloud) window.saveToCloud();
         };
 
         window.editTask = (pid, tid) => {
@@ -460,7 +461,7 @@
                 const p = window.projects.find(x=>x.id==pid);
                 p.tasks = p.tasks.filter(t=>t.id!=tid);
                 renderAll();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
+                if(window.saveToCloud) window.saveToCloud();
             }
         };
 
@@ -490,4 +491,3 @@
     </script>
 </body>
 </html>
-
