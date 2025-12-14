@@ -13,13 +13,18 @@
 
         // ✅ แก้ไข API Key ให้ถูกต้องตามภาพหลังบ้าน Firebase แล้ว (W ใหญ่, n เล็ก)
         const firebaseConfig = {
-            apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
-            authDomain: "benz-ab922.firebaseapp.com",
-            projectId: "benz-ab922",
-            storageBucket: "benz-ab922.firebasestorage.app",
-            messagingSenderId: "746873956854",
-            appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
-            measurementId: "G-EBYCR340BL"
+  apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
+  authDomain: "benz-ab922.firebaseapp.com",
+  projectId: "benz-ab922",
+  storageBucket: "benz-ab922.firebasestorage.app",
+  messagingSenderId: "746873956854",
+  appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
+  measurementId: "G-EBYCR340BL"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
         };
 
         const app = initializeApp(firebaseConfig);
@@ -817,3 +822,4 @@
     </script>
 </body>
 </html>
+
