@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timeline Manager</title>
+    <title>Team Project Timeline Manager (Online)</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📊</text></svg>">
     
     <script type="module">
@@ -11,8 +11,9 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // ✅ API Key ที่ถูกต้อง (W ใหญ่, n เล็ก)
         const firebaseConfig = {
-            apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
+            apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
             authDomain: "benz-ab922.firebaseapp.com",
             projectId: "benz-ab922",
             storageBucket: "benz-ab922.firebasestorage.app",
@@ -25,18 +26,15 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- Auth Functions ---
         window.handleLogin = async function() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            if (!email || !pass) {
-                alert('กรุณากรอก Email และ Password');
-                return;
-            }
+            if (!email || !pass) return alert('กรุณากรอกข้อมูลให้ครบ');
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
             } catch (error) {
-                console.error(error);
-                alert('Login Failed: ' + error.message);
+                alert('❌ ล็อกอินไม่ผ่าน: ' + error.message);
             }
         };
 
@@ -48,7 +46,7 @@
             if (user) {
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
-                document.getElementById('userInfo').textContent = user.email;
+                document.getElementById('userInfo').textContent = `👤 ${user.email}`;
                 window.currentUserEmail = user.email;
                 window.listenToCloud(); 
             } else {
@@ -57,51 +55,34 @@
             }
         });
 
+        // --- Auto Save & Listen ---
         function getMachineID() {
-            let machineId = localStorage.getItem('timeline_machine_id');
-            if (!machineId) {
-                const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
-                machineId = `Device-${randomStr}`;
-                localStorage.setItem('timeline_machine_id', machineId);
-            }
-            return machineId;
+            let mid = localStorage.getItem('timeline_mid');
+            if (!mid) { mid = 'DEV-' + Math.random().toString(36).substr(2,4).toUpperCase(); localStorage.setItem('timeline_mid', mid); }
+            return mid;
         }
 
         window.saveToCloud = async function() {
             try {
-                const machineID = getMachineID();
-                const dataToSave = {
+                // showNotification('⏳ กำลังบันทึก...', 'info'); // ปิดเพื่อไม่ให้รกลูกตาตอน auto-save
+                const data = {
                     projects: window.projects,
                     lastUpdated: new Date().toISOString(),
-                    updatedByDevice: machineID,
-                    updatedByEmail: window.currentUserEmail
+                    updatedBy: window.currentUserEmail,
+                    machine: getMachineID()
                 };
-                await setDoc(doc(db, "timeline", "projectData"), dataToSave);
-                
-                // Show toast notification
-                const notif = document.createElement('div');
-                notif.textContent = '✅ บันทึกข้อมูลเรียบร้อย';
-                notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#28a745;color:white;padding:10px 20px;border-radius:5px;z-index:9999;';
-                document.body.appendChild(notif);
-                setTimeout(() => notif.remove(), 2000);
-            } catch (e) {
-                console.error("Save Error:", e);
-            }
+                await setDoc(doc(db, "timeline", "projectData"), data);
+                showNotification('✅ บันทึกออนไลน์แล้ว', 'success');
+            } catch (e) { console.error(e); }
         };
 
         window.listenToCloud = function() {
-            onSnapshot(doc(db, "timeline", "projectData"), (docSnapshot) => {
-                if (docSnapshot.exists()) {
-                    const data = docSnapshot.data();
+            onSnapshot(doc(db, "timeline", "projectData"), (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
                     if (data.projects) {
                         window.projects = data.projects;
-                        if (window.renderProjectList) {
-                            if(window.selectedProjectIds) {
-                                window.projects.forEach(p => window.selectedProjectIds.add(p.id));
-                            }
-                            window.renderProjectList();
-                            window.renderTimeline();
-                        }
+                        if(window.renderAll) window.renderAll();
                     }
                 }
             });
@@ -109,111 +90,177 @@
     </script>
 
     <style>
+        /* CSS เดิมที่สวยงาม */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; }
-        .login-box { background: white; padding: 40px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        .login-btn:hover { background: #5a6fd6; }
-        
+        /* Login Overlay */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 20px; }
+        .login-btn:hover { background: #5a6fd6; transform: translateY(-2px); }
+
         #appContent { display: none; }
         .container { max-width: 1800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
         
-        h1 { color: #333; margin-bottom: 10px; font-size: 2em; }
-        .header-info { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
+        h1 { color: #333; margin-bottom: 10px; font-size: 2em; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-info { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; position: relative; }
+        .online-badge { background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; vertical-align: middle; margin-left: 10px; }
         
-        .project-selector, .view-controls, .task-form { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .project-list { display: flex; gap: 15px; flex-wrap: wrap; }
-        .project-item { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; }
-        .project-item.selected { background: #667eea; color: white; border-color: #667eea; }
+        .project-selector { margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        .project-list { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        .project-item { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.3s; }
+        .project-item:hover { transform: translateY(-2px); border-color: #667eea; }
+        .project-item.selected { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: #667eea; }
         .project-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        button { padding: 10px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; }
-        button:hover { transform: translateY(-2px); }
+        .view-controls { display: flex; gap: 15px; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; flex-wrap: wrap; }
+        .view-btn { padding: 8px 20px; background: white; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; }
+        .view-btn.active { background: #667eea; color: white; border-color: #667eea; }
         
-        .timeline-container { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; margin-bottom: 20px; }
-        .timeline-header { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 10px; min-width: 1400px; position: sticky; top: 0; background: white; z-index: 100; }
-        .task-column { width: 350px; font-weight: bold; }
+        .timeline-container { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .timeline-header { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 10px; min-width: 1400px; position: sticky; top: 0; background: white; z-index: 50; }
+        .task-column { width: 350px; font-weight: bold; color: #333; }
         .calendar-grid { flex: 1; display: flex; }
-        .time-label { flex: 1; text-align: center; border-left: 1px solid #ddd; padding: 5px; font-size: 12px; min-width: 40px; }
+        .time-label { flex: 1; text-align: center; border-left: 1px solid #eee; padding: 5px; font-size: 12px; color: #667eea; font-weight: bold; }
         
-        .task-row { display: flex; align-items: center; height: 55px; border-bottom: 1px solid #f0f0f0; min-width: 1400px; }
-        .task-name { width: 350px; padding: 10px; font-size: 14px; display: flex; justify-content: space-between; }
-        .task-timeline { flex: 1; position: relative; height: 45px; display: flex; align-items: center; }
+        .project-group { margin-bottom: 20px; border-left: 4px solid #ddd; padding-left: 10px; }
+        .project-group-header { background: #f8f9fa; padding: 8px 15px; margin-bottom: 5px; border-radius: 5px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         
-        .task-bar-container { position: absolute; height: 40px; background: rgba(200,200,200,0.3); border-radius: 20px; overflow: visible; border: 1px solid #ddd; }
-        .task-bar { height: 100%; border-radius: 20px; }
-        .task-bar.phase1 { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .task-bar.phase2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
-        .task-bar.phase3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-        .task-bar.phase4 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-        .task-bar.phase5 { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .task-row { display: flex; align-items: center; height: 60px; border-bottom: 1px solid #f9f9f9; min-width: 1400px; }
+        .task-row:hover { background: #f8f9fa; }
+        .task-name { width: 350px; padding: 0 10px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .task-actions button { padding: 2px 6px; font-size: 10px; margin-left: 2px; border-radius: 3px; border:none; cursor: pointer; color: white; }
         
-        .task-bar-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-size: 12px; }
-        .task-duration { position: absolute; top: -18px; left: 0; font-size: 10px; color: #666; }
+        .task-timeline { flex: 1; position: relative; height: 40px; display: flex; align-items: center; }
+        .grid-line { position: absolute; width: 1px; height: 100%; background: #f0f0f0; }
         
+        .task-bar-container { position: absolute; height: 30px; background: rgba(0,0,0,0.05); border-radius: 15px; overflow: visible; }
+        .task-bar { height: 100%; border-radius: 15px; position: relative; transition: width 0.3s; }
+        .task-bar.phase1 { background: linear-gradient(to right, #667eea, #764ba2); }
+        .task-bar.phase2 { background: linear-gradient(to right, #f093fb, #f5576c); }
+        .task-bar.phase3 { background: linear-gradient(to right, #4facfe, #00f2fe); }
+        .task-bar.phase4 { background: linear-gradient(to right, #43e97b, #38f9d7); }
+        .task-bar.phase5 { background: linear-gradient(to right, #fa709a, #fee140); }
+        
+        .task-bar-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: white; font-size: 11px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .task-duration { position: absolute; top: -15px; left: 0; font-size: 10px; color: #888; white-space: nowrap; }
+
+        .btn-main { padding: 8px 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(102,126,234,0.3); }
+
+        .stats-panel { display: flex; gap: 15px; margin: 20px 0; }
+        .stat-card { flex: 1; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .stat-card h4 { font-size: 12px; color: #667eea; margin-bottom: 5px; }
+        .stat-card .val { font-size: 24px; font-weight: bold; color: #333; }
+
+        /* Task Form Modal */
+        .task-form { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 200; width: 400px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
-        
-        .online-badge { background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 10px; }
-        .stats-panel { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-        .stat-card { background: white; padding: 15px; border-radius: 10px; flex: 1; min-width: 150px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .stat-card .val { font-size: 20px; font-weight: bold; color: #333; }
+        .form-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 150; }
     </style>
 </head>
 <body>
     <div id="loginOverlay">
         <div class="login-box">
             <div style="font-size: 60px; margin-bottom: 10px;">🔒</div>
-            <h2>Team Login</h2>
-            <p style="color:#666; margin-bottom:20px;">Timeline Manager System</p>
+            <h2 style="margin-bottom: 10px;">Team Login</h2>
+            <p style="color:#666; margin-bottom:20px;">กรุณาใส่ Email และ Password เพื่อเข้าใช้งาน</p>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
-            <button class="login-btn" onclick="handleLogin()">Login</button>
+            <button class="login-btn" onclick="handleLogin()">เข้าสู่ระบบ</button>
         </div>
     </div>
 
     <div id="appContent" class="container">
         <div class="header-info">
-            <h2>🚀 Timeline Manager <span class="online-badge">Online</span></h2>
-            <div style="margin-top:10px;">
+            <h2>🚀 Team Project Timeline Manager <span class="online-badge">Online</span></h2>
+            <div style="margin-top: 10px; font-size: 14px;">
                 <span id="userInfo"></span> | 
-                <button onclick="handleLogout()" style="padding:5px 10px; font-size:12px; border:1px solid white; background:transparent;">Logout</button>
+                <a href="#" onclick="handleLogout()" style="color: white; text-decoration: underline;">ออกจากระบบ</a>
             </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h1>Dashboard</h1>
-            <button onclick="window.saveToCloud()" style="background: linear-gradient(135deg, #11998e, #38ef7d);">☁️ Force Save</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>📊 Project Timeline Dashboard</h1>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-main" onclick="window.saveToCloud()" style="background: #28a745;">☁️ บันทึกออนไลน์</button>
+            </div>
         </div>
 
         <div class="stats-panel">
-            <div class="stat-card">Tasks ทั้งหมด<div class="val" id="st_total">0</div></div>
-            <div class="stat-card">กำลังทำ<div class="val" id="st_progress">0</div></div>
-            <div class="stat-card">เสร็จแล้ว<div class="val" id="st_done">0</div></div>
+            <div class="stat-card"><h4>โครงการทั้งหมด</h4><div class="val" id="stat-proj">0</div></div>
+            <div class="stat-card"><h4>Tasks ทั้งหมด</h4><div class="val" id="stat-task">0</div></div>
+            <div class="stat-card"><h4>ความคืบหน้าเฉลี่ย</h4><div class="val" id="stat-prog">0%</div></div>
         </div>
 
         <div class="project-selector">
-            <h3>Projects:</h3>
+            <h3>เลือกโครงการที่ต้องการดู:</h3>
             <div class="project-list" id="projectList"></div>
-            <div style="margin-top:10px;">
-                <button onclick="selectAll()">Select All</button>
-                <button onclick="addNewProject()">+ New Project</button>
+            <div style="margin-top: 15px;">
+                <button class="btn-main" onclick="selectAll()">✅ เลือกทั้งหมด</button>
+                <button class="btn-main" onclick="deselectAll()" style="background: #6c757d;">❌ ยกเลิกทั้งหมด</button>
+                <button class="btn-main" onclick="addNewProject()" style="background: #17a2b8;">➕ เพิ่มโครงการใหม่</button>
             </div>
         </div>
 
         <div class="view-controls">
-            <button onclick="setViewMode('month')">Month View</button>
-            <button onclick="setViewMode('week')">Week View</button>
-            <button onclick="zoomOut()">- Zoom</button>
-            <button onclick="zoomIn()">+ Zoom</button>
-            <span style="margin-left:10px;">Filter Phase:</span>
-            <select id="phaseFilter" onchange="applyFilter()" style="padding:5px;">
-                <option value="all">All</option>
+            <button class="view-btn active" id="btnMonth" onclick="setViewMode('month')">📅 รายเดือน</button>
+            <button class="view-btn" id="btnWeek" onclick="setViewMode('week')">📆 รายสัปดาห์</button>
+            <div style="flex:1"></div>
+            <label>กรอง Phase:</label>
+            <select id="phaseFilter" onchange="renderAll()" style="padding: 5px; border-radius: 5px;">
+                <option value="all">ทั้งหมด (All Phases)</option>
+                <option value="phase1">Phase 1: Research</option>
+                <option value="phase2">Phase 2: Development</option>
+                <option value="phase3">Phase 3: Testing</option>
+                <option value="phase4">Phase 4: Scale-up</option>
+                <option value="phase5">Phase 5: Launch</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <button class="btn-main" onclick="openTaskForm()">➕ เพิ่ม Task ใหม่</button>
+        </div>
+
+        <div class="timeline-container">
+            <div class="timeline-header">
+                <div class="task-column">Project / Tasks</div>
+                <div class="calendar-grid" id="calendarHeader"></div>
+            </div>
+            <div id="taskList"></div>
+        </div>
+
+        <div class="footer" style="text-align: center; color: #888; margin-top: 30px;">
+            <p>© 2025 Your Team | Data Synced with Firebase</p>
+        </div>
+    </div>
+
+    <div class="form-overlay" id="formOverlay"></div>
+    <div class="task-form" id="taskForm">
+        <h3 style="margin-bottom: 20px;">📝 เพิ่ม/แก้ไข Task</h3>
+        <div class="form-group">
+            <label>โครงการ:</label>
+            <select id="t_project"></select>
+        </div>
+        <div class="form-group">
+            <label>ชื่อ Task:</label>
+            <input type="text" id="t_name">
+        </div>
+        <div class="form-group">
+            <label>วันเริ่มต้น:</label>
+            <input type="date" id="t_start">
+        </div>
+        <div class="form-group">
+            <label>วันสิ้นสุด:</label>
+            <input type="date" id="t_end">
+        </div>
+        <div class="form-group">
+            <label>Phase:</label>
+            <select id="t_phase">
                 <option value="phase1">Phase 1</option>
                 <option value="phase2">Phase 2</option>
                 <option value="phase3">Phase 3</option>
@@ -221,137 +268,108 @@
                 <option value="phase5">Phase 5</option>
             </select>
         </div>
-
-        <div class="controls">
-            <button onclick="addTask()">+ New Task</button>
+        <div class="form-group">
+            <label>ความคืบหน้า (%):</label>
+            <input type="number" id="t_progress" min="0" max="100" value="0">
         </div>
-
-        <div class="timeline-container">
-            <div class="timeline-header">
-                <div class="task-column">Task Name</div>
-                <div class="calendar-grid" id="calendarHeader"></div>
-            </div>
-            <div id="taskList"></div>
-        </div>
-
-        <div class="task-form" id="taskForm" style="display:none;">
-            <h3>Task Details</h3>
-            <div class="form-group"><label>Project:</label><select id="t_project"></select></div>
-            <div class="form-group"><label>Name:</label><input type="text" id="t_name"></div>
-            <div class="form-group"><label>Start:</label><input type="date" id="t_start"></div>
-            <div class="form-group"><label>End:</label><input type="date" id="t_end"></div>
-            <div class="form-group"><label>Phase:</label>
-                <select id="t_phase">
-                    <option value="phase1">Phase 1</option>
-                    <option value="phase2">Phase 2</option>
-                    <option value="phase3">Phase 3</option>
-                    <option value="phase4">Phase 4</option>
-                    <option value="phase5">Phase 5</option>
-                </select>
-            </div>
-            <div class="form-group"><label>Progress %:</label><input type="number" id="t_progress" min="0" max="100"></div>
-            <button onclick="saveTaskLocal()">Save Task</button>
-            <button onclick="document.getElementById('taskForm').style.display='none'" style="background:#666;">Cancel</button>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-main" onclick="saveTaskLocal()">💾 บันทึก</button>
+            <button class="btn-main" onclick="closeForm()" style="background: #6c757d;">ยกเลิก</button>
         </div>
     </div>
 
     <script>
+        // --- DATA & LOGIC ---
         window.projects = [];
         window.selectedIds = new Set();
-        let editTaskMeta = null;
+        let editMeta = null;
         let viewMode = 'month';
-        let zoom = 100;
-        let filter = 'all';
-        const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a'];
+        const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#ff6b6b', '#ffd93d'];
 
-        function init() {
+        window.renderAll = function() {
             renderProjects();
             renderTimeline();
-        }
+            updateStats();
+        };
 
-        // --- Render Projects ---
-        window.renderProjects = function() {
+        function renderProjects() {
             const list = document.getElementById('projectList');
             list.innerHTML = '';
             window.projects.forEach((p, idx) => {
                 const div = document.createElement('div');
-                div.className = `project-item ${window.selectedIds.has(p.id)?'selected':''}`;
+                div.className = `project-item ${window.selectedIds.has(p.id) ? 'selected' : ''}`;
                 div.innerHTML = `
-                    <span onclick="toggleProj(${p.id})">${p.name}</span>
-                    <span style="font-size:10px; cursor:pointer;" onclick="delProj(${idx})">❌</span>
+                    <div class="project-color" style="background:${p.color}"></div>
+                    <span onclick="toggleProj(${p.id})" style="flex:1">${p.name}</span>
+                    <button onclick="editProjName(${idx})" style="border:none; bg:none; cursor:pointer;">✏️</button>
+                    <button onclick="delProj(${idx})" style="border:none; bg:none; cursor:pointer; color:red;">🗑️</button>
                 `;
                 list.appendChild(div);
             });
-            updateSelect();
-        };
+        }
 
         window.toggleProj = function(id) {
-            if(window.selectedIds.has(id)) window.selectedIds.delete(id);
-            else window.selectedIds.add(id);
-            renderProjects(); renderTimeline();
+            if(window.selectedIds.has(id)) window.selectedIds.delete(id); else window.selectedIds.add(id);
+            renderAll();
         };
-        window.selectAll = function() {
-            window.projects.forEach(p => window.selectedIds.add(p.id));
-            renderProjects(); renderTimeline();
+        window.selectAll = function() { window.projects.forEach(p=>window.selectedIds.add(p.id)); renderAll(); };
+        window.deselectAll = function() { window.selectedIds.clear(); renderAll(); };
+
+        window.addNewProject = function() {
+            const name = prompt("ชื่อโครงการใหม่:");
+            if(name) {
+                const p = { id: Date.now(), name: name, color: colors[window.projects.length % 7], tasks: [] };
+                window.projects.push(p);
+                window.selectedIds.add(p.id);
+                renderAll();
+                if(window.saveToCloud) window.saveToCloud(); // Auto Save
+            }
         };
 
-        // --- CRUD Logic + AUTO SAVE ---
-        window.addNewProject = function() {
-            const name = prompt("Project Name:");
+        window.editProjName = function(idx) {
+            const name = prompt("แก้ไขชื่อโครงการ:", window.projects[idx].name);
             if(name) {
-                const pid = Date.now();
-                window.projects.push({id: pid, name: name, color: colors[window.projects.length%5], tasks:[]});
-                window.selectedIds.add(pid);
-                renderProjects();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
+                window.projects[idx].name = name;
+                renderAll();
+                if(window.saveToCloud) window.saveToCloud();
             }
         };
 
         window.delProj = function(idx) {
-            if(confirm("Delete Project?")) {
+            if(confirm("ลบโครงการนี้?")) {
                 window.projects.splice(idx, 1);
-                renderProjects(); renderTimeline();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
+                renderAll();
+                if(window.saveToCloud) window.saveToCloud();
             }
         };
 
-        window.addTask = function() {
-            editTaskMeta = null;
-            document.getElementById('taskForm').style.display='block';
-            document.getElementById('t_name').value='';
-            document.getElementById('t_start').value='';
-            document.getElementById('t_end').value='';
-            document.getElementById('t_progress').value=0;
-            updateSelect();
+        window.openTaskForm = function() {
+            editMeta = null;
+            document.getElementById('formOverlay').style.display = 'block';
+            document.getElementById('taskForm').style.display = 'block';
+            // Clear inputs
+            document.getElementById('t_name').value = '';
+            document.getElementById('t_start').value = '';
+            document.getElementById('t_end').value = '';
+            document.getElementById('t_progress').value = 0;
+            // Update select
+            const s = document.getElementById('t_project');
+            s.innerHTML = '';
+            window.projects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id; opt.text = p.name; s.appendChild(opt);
+            });
         };
 
-        window.editTask = function(pid, tid) {
-            const p = window.projects.find(x=>x.id==pid);
-            const t = p.tasks.find(x=>x.id==tid);
-            editTaskMeta = {pid, tid};
-            document.getElementById('taskForm').style.display='block';
-            document.getElementById('t_project').value=pid;
-            document.getElementById('t_name').value=t.name;
-            document.getElementById('t_start').value=t.startDate;
-            document.getElementById('t_end').value=t.endDate;
-            document.getElementById('t_phase').value=t.phase;
-            document.getElementById('t_progress').value=t.progress;
-            updateSelect();
-        };
-
-        window.delTask = function(pid, tid) {
-            if(confirm("Delete Task?")) {
-                const p = window.projects.find(x=>x.id==pid);
-                p.tasks = p.tasks.filter(x=>x.id != tid);
-                renderTimeline();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
-            }
+        window.closeForm = function() {
+            document.getElementById('formOverlay').style.display = 'none';
+            document.getElementById('taskForm').style.display = 'none';
         };
 
         window.saveTaskLocal = function() {
             const pid = document.getElementById('t_project').value;
-            const tObj = {
-                id: editTaskMeta ? editTaskMeta.tid : Date.now().toString(),
+            const task = {
+                id: editMeta ? editMeta.tid : Date.now().toString(),
                 name: document.getElementById('t_name').value,
                 startDate: document.getElementById('t_start').value,
                 endDate: document.getElementById('t_end').value,
@@ -359,144 +377,183 @@
                 progress: parseInt(document.getElementById('t_progress').value) || 0
             };
 
-            if(!tObj.name || !tObj.startDate || !tObj.endDate) return alert("กรอกข้อมูลให้ครบ");
+            if(!task.name || !task.startDate || !task.endDate) return alert("กรุณากรอกข้อมูลให้ครบ");
 
             const p = window.projects.find(x => x.id == pid);
-            if(editTaskMeta) {
-                // Edit
-                if(editTaskMeta.pid == pid) {
-                    const idx = p.tasks.findIndex(x=>x.id == editTaskMeta.tid);
-                    p.tasks[idx] = tObj;
+            if(editMeta) {
+                // Logic การแก้ไข (ซับซ้อนหน่อยเผื่อย้าย Project)
+                if(editMeta.pid == pid) {
+                    const idx = p.tasks.findIndex(t=>t.id == editMeta.tid);
+                    p.tasks[idx] = task;
                 } else {
-                    // Move project
-                    const oldP = window.projects.find(x=>x.id == editTaskMeta.pid);
-                    oldP.tasks = oldP.tasks.filter(x=>x.id != editTaskMeta.tid);
-                    p.tasks.push(tObj);
+                    const oldP = window.projects.find(x=>x.id == editMeta.pid);
+                    oldP.tasks = oldP.tasks.filter(t=>t.id != editMeta.tid);
+                    p.tasks.push(task);
                 }
             } else {
-                // New
-                p.tasks.push(tObj);
+                p.tasks.push(task);
             }
-
-            document.getElementById('taskForm').style.display='none';
-            renderTimeline();
-            if(window.saveToCloud) window.saveToCloud(); // Auto Save Triggered!
+            
+            closeForm();
+            renderAll();
+            if(window.saveToCloud) window.saveToCloud(); // Auto Save
         };
 
-        function updateSelect() {
+        window.editTask = function(pid, tid) {
+            const p = window.projects.find(x=>x.id==pid);
+            const t = p.tasks.find(x=>x.id==tid);
+            editMeta = {pid, tid};
+            
+            document.getElementById('formOverlay').style.display = 'block';
+            document.getElementById('taskForm').style.display = 'block';
+            
+            // Populate
             const s = document.getElementById('t_project');
             s.innerHTML = '';
-            window.projects.forEach(p => {
+            window.projects.forEach(prj => {
                 const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.text = p.name;
-                s.appendChild(opt);
+                opt.value = prj.id; opt.text = prj.name; s.appendChild(opt);
             });
-            if(editTaskMeta) s.value = editTaskMeta.pid;
-        }
+            s.value = pid;
+            
+            document.getElementById('t_name').value = t.name;
+            document.getElementById('t_start').value = t.startDate;
+            document.getElementById('t_end').value = t.endDate;
+            document.getElementById('t_phase').value = t.phase;
+            document.getElementById('t_progress').value = t.progress;
+        };
 
-        // --- Timeline Core ---
-        window.renderTimeline = function() {
-            const h = document.getElementById('calendarHeader');
-            const l = document.getElementById('taskList');
-            h.innerHTML=''; l.innerHTML='';
+        window.delTask = function(pid, tid) {
+            if(confirm("ลบ Task นี้?")) {
+                const p = window.projects.find(x=>x.id==pid);
+                p.tasks = p.tasks.filter(t=>t.id != tid);
+                renderAll();
+                if(window.saveToCloud) window.saveToCloud();
+            }
+        };
 
-            // Stats Logic
-            let tot=0, prog=0, done=0;
+        // --- Timeline Logic ---
+        function renderTimeline() {
+            const header = document.getElementById('calendarHeader');
+            const body = document.getElementById('taskList');
+            header.innerHTML = ''; body.innerHTML = '';
 
             const range = getDateRange();
-            const days = (range.end - range.start)/(1000*60*60*24);
+            const totalDays = (range.end - range.start) / (1000*60*60*24);
 
             // Render Header
             let curr = new Date(range.start);
             if(viewMode === 'week') {
-                curr.setDate(curr.getDate()-curr.getDay());
+                curr.setDate(curr.getDate() - curr.getDay());
                 while(curr <= range.end) {
                     const d = document.createElement('div');
                     d.className = 'time-label';
-                    d.style.minWidth = (40*zoom/100)+'px';
-                    d.textContent = 'W'+getWeek(curr);
-                    h.appendChild(d);
+                    d.style.minWidth = '50px';
+                    d.textContent = 'W' + getWeek(curr);
+                    header.appendChild(d);
                     curr.setDate(curr.getDate()+7);
                 }
             } else {
                 curr.setDate(1);
                 while(curr <= range.end) {
                     const d = document.createElement('div');
-                    d.className = 'time-label';
-                    d.style.minWidth = (100*zoom/100)+'px';
-                    d.textContent = curr.toLocaleString('default', {month:'short', year:'2-digit'});
-                    h.appendChild(d);
+                    d.className = 'time-label month';
+                    d.style.minWidth = '100px';
+                    d.textContent = curr.toLocaleString('th-TH', {month:'short', year:'2-digit'});
+                    header.appendChild(d);
                     curr.setMonth(curr.getMonth()+1);
                 }
             }
 
-            // Render Tasks
-            const showP = window.projects.filter(p => window.selectedIds.has(p.id));
-            showP.forEach(p => {
-                const ts = filter==='all' ? p.tasks : p.tasks.filter(t=>t.phase===filter);
-                ts.forEach(t => {
-                    tot++;
-                    if(t.progress>=100) done++; else if(t.progress>0) prog++;
+            // Render Rows
+            const filter = document.getElementById('phaseFilter').value;
+            const activeProjects = window.projects.filter(p => window.selectedIds.has(p.id));
 
-                    const r = document.createElement('div');
-                    r.className='task-row';
-                    r.innerHTML = `
+            activeProjects.forEach(p => {
+                // Group Header
+                const group = document.createElement('div');
+                group.className = 'project-group';
+                group.style.borderLeftColor = p.color;
+                group.innerHTML = `<div class="project-group-header"><div class="project-color" style="background:${p.color}"></div>${p.name}</div>`;
+                
+                const tasks = filter === 'all' ? p.tasks : p.tasks.filter(t => t.phase === filter);
+                tasks.forEach(t => {
+                    const row = document.createElement('div');
+                    row.className = 'task-row';
+                    row.innerHTML = `
                         <div class="task-name">
-                            <span>${t.name}</span>
-                            <div>
-                                <span style="font-size:10px; cursor:pointer;" onclick="editTask(${p.id}, '${t.id}')">✏️</span>
-                                <span style="font-size:10px; cursor:pointer;" onclick="delTask(${p.id}, '${t.id}')">🗑️</span>
+                            <div>${t.name} <span style="font-size:11px; color:#888;">(${t.progress}%)</span></div>
+                            <div class="task-actions">
+                                <button onclick="editTask(${p.id}, '${t.id}')" style="background:#f0ad4e;">✏️</button>
+                                <button onclick="delTask(${p.id}, '${t.id}')" style="background:#d9534f;">🗑️</button>
                             </div>
                         </div>
                     `;
                     
                     const tl = document.createElement('div');
-                    tl.className='task-timeline';
+                    tl.className = 'task-timeline';
                     
-                    // Grid lines (simplified)
+                    // Calc position
                     const s = new Date(t.startDate);
                     const e = new Date(t.endDate);
-                    const left = ((s - range.start)/(1000*60*60*24) / days) * 100;
-                    const w = ((e - s)/(1000*60*60*24) / days) * 100;
-
+                    const left = ((s - range.start) / (1000*60*60*24) / totalDays) * 100;
+                    const width = ((e - s) / (1000*60*60*24) / totalDays) * 100;
+                    
                     const bar = document.createElement('div');
-                    bar.className = `task-bar-container`;
-                    bar.style.left = left+'%';
-                    bar.style.width = Math.max(w, 0.5)+'%';
+                    bar.className = 'task-bar-container';
+                    bar.style.left = left + '%';
+                    bar.style.width = Math.max(width, 0.5) + '%';
                     bar.innerHTML = `
                         <div class="task-bar ${t.phase}" style="width:${t.progress}%"></div>
                         <div class="task-bar-label">${t.progress}%</div>
+                        <div class="task-duration">${Math.round((e-s)/(1000*60*60*24))}d</div>
                     `;
                     
                     tl.appendChild(bar);
-                    r.appendChild(tl);
-                    l.appendChild(r);
+                    row.appendChild(tl);
+                    group.appendChild(row);
                 });
+                
+                if(tasks.length > 0) body.appendChild(group);
             });
-
-            // Update Stats UI
-            document.getElementById('st_total').innerText = tot;
-            document.getElementById('st_progress').innerText = prog;
-            document.getElementById('st_done').innerText = done;
-        };
+        }
 
         function getDateRange() {
-            let s = new Date('2025-01-01');
-            let e = new Date('2025-12-31');
-            // Simplified range logic to prevent errors on empty projects
-            return {start:s, end:e}; 
+            return { start: new Date('2025-01-01'), end: new Date('2025-12-31') };
         }
         function getWeek(d) {
             const onejan = new Date(d.getFullYear(),0,1);
             return Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
         }
+        function updateStats() {
+            let pCnt=0, tCnt=0, progSum=0;
+            const active = window.projects.filter(p => window.selectedIds.has(p.id));
+            pCnt = active.length;
+            active.forEach(p => {
+                p.tasks.forEach(t => {
+                    tCnt++;
+                    progSum += (t.progress||0);
+                });
+            });
+            document.getElementById('stat-proj').innerText = pCnt;
+            document.getElementById('stat-task').innerText = tCnt;
+            document.getElementById('stat-prog').innerText = (tCnt ? Math.round(progSum/tCnt) : 0) + '%';
+        }
 
-        window.setViewMode = (m) => { viewMode=m; renderTimeline(); };
-        window.zoomIn = () => { if(zoom<200) zoom+=20; renderTimeline(); };
-        window.zoomOut = () => { if(zoom>50) zoom-=20; renderTimeline(); };
-        window.applyFilter = () => { filter = document.getElementById('phaseFilter').value; renderTimeline(); };
+        window.setViewMode = (m) => {
+            viewMode = m;
+            document.getElementById('btnMonth').classList.toggle('active', m==='month');
+            document.getElementById('btnWeek').classList.toggle('active', m==='week');
+            renderAll();
+        };
 
+        window.showNotification = (msg) => {
+            const n = document.createElement('div');
+            n.innerText = msg;
+            n.style.cssText = "position:fixed; top:20px; right:20px; background:#28a745; color:white; padding:10px 20px; border-radius:5px; z-index:9999; box-shadow:0 5px 15px rgba(0,0,0,0.2);";
+            document.body.appendChild(n);
+            setTimeout(()=>n.remove(), 2000);
+        };
     </script>
 </body>
 </html>
