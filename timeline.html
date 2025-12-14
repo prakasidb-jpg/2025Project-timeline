@@ -11,14 +11,15 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // ✅ แก้ไข API Key ให้ถูกต้องตามรูปภาพของคุณแล้ว
         const firebaseConfig = {
-            apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
-  authDomain: "benz-ab922.firebaseapp.com",
-  projectId: "benz-ab922",
-  storageBucket: "benz-ab922.firebasestorage.app",
-  messagingSenderId: "746873956854",
-  appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
-  measurementId: "G-EBYCR340BL"
+            apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
+            authDomain: "benz-ab922.firebaseapp.com",
+            projectId: "benz-ab922",
+            storageBucket: "benz-ab922.firebasestorage.app",
+            messagingSenderId: "746873956854",
+            appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
+            measurementId: "G-EBYCR340BL"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -31,7 +32,6 @@
             const pass = document.getElementById('password').value;
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                // Login successful, onAuthStateChanged will handle the UI switch
             } catch (error) {
                 alert('❌ ล็อกอินไม่ผ่าน: ' + error.message);
             }
@@ -46,22 +46,18 @@
         // Monitor Auth State
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // User is signed in
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
                 document.getElementById('userInfo').textContent = `👤 ${user.email}`;
-                
-                // Initialize App Data
                 window.currentUserEmail = user.email;
-                window.listenToCloud(); // Start listening to data
+                window.listenToCloud(); 
             } else {
-                // User is signed out
                 document.getElementById('loginOverlay').style.display = 'flex';
                 document.getElementById('appContent').style.display = 'none';
             }
         });
 
-        // --- Existing Timeline Functions (Same as before) ---
+        // --- Machine ID ---
         function getMachineID() {
             let machineId = localStorage.getItem('timeline_machine_id');
             if (!machineId) {
@@ -72,6 +68,7 @@
             return machineId;
         }
 
+        // --- Cloud Save Function ---
         window.saveToCloud = async function() {
             try {
                 showNotification('⏳ กำลังบันทึก...', 'info');
@@ -80,7 +77,7 @@
                     projects: window.projects,
                     lastUpdated: new Date().toISOString(),
                     updatedByDevice: machineID,
-                    updatedByEmail: window.currentUserEmail // Save who edited it
+                    updatedByEmail: window.currentUserEmail
                 };
                 await setDoc(doc(db, "timeline", "projectData"), dataToSave);
                 showNotification(`✅ บันทึกแล้ว!`, 'success');
@@ -90,6 +87,7 @@
             }
         };
 
+        // --- Cloud Listen Function ---
         window.listenToCloud = function() {
             console.log("📡 Listening...");
             onSnapshot(doc(db, "timeline", "projectData"), (docSnapshot) => {
@@ -113,272 +111,14 @@
         };
     </script>
     <style>
-        /* CSS เดิม + Login Styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         
-        /* Login Overlay */
-        #loginOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-            z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-        }
-        .login-box {
-            background: white; padding: 40px; border-radius: 15px;
-            width: 100%; max-width: 400px;
-            text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-        .login-box input {
-            width: 100%; padding: 12px; margin: 10px 0;
-            border: 1px solid #ddd; border-radius: 5px;
-        }
-        .login-btn {
-            width: 100%; padding: 12px; background: #667eea; color: white;
-            border: none; border-radius: 5px; cursor: pointer; font-size: 16px;
-            margin-top: 10px;
-        }
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
         .login-btn:hover { background: #5a6fd6; }
-
-        /* Main App (Hidden by default) */
         #appContent { display: none; }
 
-        /* ... (CSS เดิมทั้งหมด) ... */
-        .container { max-width: 1800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
-        h1 { color: #333; margin-bottom: 10px; font-size: 2em; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .header-info { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
-        .project-selector { margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .project-list { display: flex; gap: 15px; flex-wrap: wrap; }
-        .project-item { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.3s; }
-        .project-item.selected { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: #667eea; }
-        .project-checkbox { width: 20px; height: 20px; cursor: pointer; }
-        .project-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .view-controls { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        .view-toggle { display: flex; gap: 5px; background: white; padding: 5px; border-radius: 8px; }
-        .view-btn { padding: 8px 15px; background: white; border: 1px solid #ddd; cursor: pointer; transition: all 0.3s; border-radius: 5px; }
-        .view-btn.active { background: #667eea; color: white; border-color: #667eea; }
-        .zoom-controls { display: flex; gap: 10px; align-items: center; }
-        .zoom-btn { width: 35px; height: 35px; border-radius: 50%; background: white; border: 1px solid #ddd; cursor: pointer; font-size: 18px; transition: all 0.3s; }
-        .zoom-btn:hover { background: #667eea; color: white; border-color: #667eea; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        button { padding: 10px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
-        .timeline-container { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; overflow-y: visible; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); position: relative; }
-        .timeline-header { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 10px; min-width: 1400px; position: sticky; top: 0; background: white; z-index: 100; }
-        .task-column { width: 350px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 10px; }
-        .calendar-grid { flex: 1; display: flex; position: relative; }
-        .time-label { flex: 1; text-align: center; font-weight: bold; color: #667eea; border-left: 1px solid #e0e0e0; padding: 5px; font-size: 12px; min-width: 40px; }
-        .time-label.month { min-width: 100px; }
-        .project-group { margin-bottom: 15px; border-left: 4px solid #ddd; padding-left: 10px; }
-        .project-group-header { background: #f8f9fa; padding: 8px 15px; margin-bottom: 5px; border-radius: 5px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
-        .task-row { display: flex; align-items: center; min-height: 55px; border-bottom: 1px solid #f0f0f0; position: relative; min-width: 1400px; }
-        .task-row:hover { background: #f8f9fa; }
-        .task-name { width: 350px; padding: 10px; font-size: 14px; color: #333; display: flex; justify-content: space-between; align-items: center; }
-        .task-info { flex: 1; }
-        .task-progress-text { font-size: 11px; color: #666; margin-top: 2px; }
-        .task-actions { display: flex; gap: 5px; }
-        .task-action-btn { padding: 2px 8px; font-size: 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .task-action-btn.delete { background: #ff4444; }
-        .task-timeline { flex: 1; position: relative; height: 45px; display: flex; align-items: center; }
-        .task-bar-container { position: absolute; height: 40px; border-radius: 20px; background: rgba(200, 200, 200, 0.3); overflow: visible; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.1); }
-        .task-bar { height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; position: relative; transition: all 0.3s; overflow: visible; }
-        .task-bar.phase1 { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .task-bar.phase2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
-        .task-bar.phase3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-        .task-bar.phase4 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-        .task-bar.phase5 { background: linear-gradient(135deg, #fa709a, #fee140); }
-        .task-bar-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; font-size: 14px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); white-space: nowrap; z-index: 10; pointer-events: none; }
-        .task-duration { position: absolute; top: -20px; left: 0; font-size: 10px; color: #666; white-space: nowrap; }
-        .grid-line { position: absolute; width: 1px; height: 100%; background: #f0f0f0; pointer-events: none; }
-        .today-line { position: absolute; width: 2px; height: 100%; background: #ff6b6b; pointer-events: none; z-index: 50; }
-        .today-marker { position: absolute; top: -20px; background: #ff6b6b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; z-index: 51; }
-        .stats-panel { display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap; }
-        .stat-card { flex: 1; min-width: 150px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        .stat-card h4 { color: #667eea; margin-bottom: 5px; font-size: 12px; }
-        .stat-card .value { font-size: 24px; font-weight: bold; color: #333; }
-        .task-form { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
-        .progress-input-group { display: flex; align-items: center; gap: 10px; }
-        .progress-input { flex: 1; }
-        .progress-value { font-weight: bold; color: #667eea; min-width: 50px; text-align: right; }
-        .legend { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; }
-        .legend h3 { margin-bottom: 10px; color: #333; }
-        .legend-item { display: inline-block; margin: 5px 15px; }
-        .legend-color { display: inline-block; width: 30px; height: 15px; border-radius: 5px; margin-right: 5px; vertical-align: middle; }
-        .filter-group { display: flex; gap: 10px; align-items: center; }
-        .filter-select { padding: 8px; border: 1px solid #ddd; border-radius: 5px; background: white; }
-        .footer { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center; color: #666; }
-        .footer a { color: #667eea; text-decoration: none; }
-        .online-badge { background-color: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; vertical-align: middle; margin-left: 10px; }
-    </style>
-</head>
-<body>
-    <div id="loginOverlay">
-        <div class="login-box">
-            <div style="font-size: 60px; margin-bottom: 10px;">🔒</div>
-            <h2 style="margin-bottom: 20px;">Team Login</h2>
-            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">กรุณาใส่ Email และ Password ที่ได้รับจาก Admin</p>
-            <input type="email" id="email" placeholder="name@company.com">
-            <input type="password" id="password" placeholder="Password">
-            <button class="login-btn" onclick="handleLogin()">เข้าสู่ระบบ</button>
-        </div>
-    </div>
-
-    <div id="appContent" class="container">
-        <div class="header-info">
-            <h2>🚀 Team Project Timeline Manager <span class="online-badge">Secure</span></h2>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
-                <span id="userInfo" style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 14px;"></span>
-                <button onclick="handleLogout()" style="background: rgba(255,255,255,0.2); border: 1px solid white; padding: 5px 10px; font-size: 12px;">Logout</button>
-            </div>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>📊 Project Timeline Dashboard</h1>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="window.saveToCloud()" title="Save to Online Database" style="background: linear-gradient(135deg, #11998e, #38ef7d); padding: 8px 16px; font-size: 14px; font-weight: bold;">
-                    ☁️ Save to Cloud
-                </button>
-                <button onclick="quickSave()" title="Quick Save to File" style="background: #28a745; padding: 8px 16px; font-size: 14px;">
-                    💾 File Backup
-                </button>
-            </div>
-        </div>
-        
-        <div class="project-selector">
-            <h3>เลือกโครงการที่ต้องการดู:</h3>
-            <div class="project-list" id="projectList"></div>
-            <div style="margin-top: 15px;">
-                <button onclick="selectAllProjects()">✅ เลือกทั้งหมด</button>
-                <button onclick="deselectAllProjects()">❌ ยกเลิกทั้งหมด</button>
-                <button onclick="addNewProject()">➕ เพิ่มโครงการใหม่</button>
-            </div>
-        </div>
-        
-        <div class="view-controls">
-            <div class="view-toggle">
-                <button class="view-btn active" onclick="setViewMode('month')" id="monthView">📅 รายเดือน</button>
-                <button class="view-btn" onclick="setViewMode('week')" id="weekView">📆 รายสัปดาห์</button>
-            </div>
-            <div class="zoom-controls">
-                <button class="zoom-btn" onclick="zoomOut()">−</button>
-                <span id="zoomLevel">100%</span>
-                <button class="zoom-btn" onclick="zoomIn()">+</button>
-            </div>
-            <div class="filter-group">
-                <label>กรอง Phase:</label>
-                <select class="filter-select" id="phaseFilter" onchange="applyFilter()">
-                    <option value="all">ทั้งหมด</option>
-                    <option value="phase1">Phase 1: Research</option>
-                    <option value="phase2">Phase 2: Development</option>
-                    <option value="phase3">Phase 3: Testing</option>
-                    <option value="phase4">Phase 4: Scale-up</option>
-                    <option value="phase5">Phase 5: Launch</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="stats-panel" id="statsPanel">
-            <div class="stat-card"><h4>โครงการที่เลือก</h4><div class="value" id="selectedProjects">0</div></div>
-            <div class="stat-card"><h4>จำนวน Tasks ทั้งหมด</h4><div class="value" id="totalTasks">0</div></div>
-            <div class="stat-card"><h4>ความคืบหน้าเฉลี่ย</h4><div class="value" id="overallProgress">0%</div></div>
-            <div class="stat-card"><h4>Tasks เสร็จ 100%</h4><div class="value" id="completedTasks">0</div></div>
-            <div class="stat-card"><h4>Tasks กำลังดำเนินการ</h4><div class="value" id="inProgressTasks">0</div></div>
-            <div class="stat-card"><h4>Tasks เกินกำหนด</h4><div class="value" id="overdueTasks" style="color: #ff4444;">0</div></div>
-        </div>
-        
-        <div class="controls">
-            <button onclick="addTask()">➕ เพิ่ม Task ใหม่</button>
-            <button onclick="window.saveToCloud()" style="background: linear-gradient(135deg, #11998e, #38ef7d);">☁️ บันทึกออนไลน์</button>
-            <button onclick="exportSelectedProjects()">📥 Export</button>
-            <button onclick="loadSampleProjects()">📝 โหลดตัวอย่าง</button>
-        </div>
-        
-        <div class="timeline-container" id="timelineContainer">
-            <div class="timeline-header">
-                <div class="task-column">Project / Tasks <span style="font-size: 12px; color: #666;">(Progress %)</span></div>
-                <div class="calendar-grid" id="calendarHeader"></div>
-            </div>
-            <div id="taskList"></div>
-        </div>
-        
-        <div class="task-form" id="taskForm" style="display:none;">
-            <h3>เพิ่ม/แก้ไข Task</h3>
-            <div class="form-group"><label>โครงการ:</label><select id="taskProject"></select></div>
-            <div class="form-group"><label>ชื่อ Task:</label><input type="text" id="taskNameInput"></div>
-            <div class="form-group"><label>วันเริ่มต้น:</label><input type="date" id="taskStart"></div>
-            <div class="form-group"><label>วันสิ้นสุด:</label><input type="date" id="taskEnd"></div>
-            <div class="form-group"><label>Phase:</label>
-                <select id="taskPhase">
-                    <option value="phase1">Phase 1: Research & Planning</option>
-                    <option value="phase2">Phase 2: Development</option>
-                    <option value="phase3">Phase 3: Testing & Validation</option>
-                    <option value="phase4">Phase 4: Scale-up</option>
-                    <option value="phase5">Phase 5: Registration & Launch</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Progress (%):</label>
-                <div class="progress-input-group">
-                    <input type="range" id="taskProgress" class="progress-input" min="0" max="100" value="0" oninput="updateProgressValue()">
-                    <span class="progress-value" id="progressValue">0%</span>
-                </div>
-            </div>
-            <button onclick="saveTask()">💾 บันทึก Task</button>
-            <button onclick="cancelTask()">❌ ยกเลิก</button>
-        </div>
-        
-        <div class="legend">
-            <h3>คำอธิบาย:</h3>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #667eea, #764ba2);"></span> Phase 1</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #f093fb, #f5576c);"></span> Phase 2</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #4facfe, #00f2fe);"></span> Phase 3</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #43e97b, #38f9d7);"></span> Phase 4</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #fa709a, #fee140);"></span> Phase 5</div>
-        </div>
-    </div>
-    
-    <script>
-        // --- JS Logic เดิม (ย่อส่วน) ---
-        window.projects = []; window.selectedProjectIds = new Set();
-        let currentEditingTask = null, viewMode = 'month', zoomLevel = 100, filterPhase = 'all';
-        const projectColors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#ff6b6b', '#ffd93d', '#6bcf7f', '#a78bfa', '#f59e0b'];
-        
-        window.renderProjectList = renderProjectList; window.renderTimeline = renderTimeline; window.showNotification = showNotification;
-
-        function initializeProjects() { renderProjectList(); renderTimeline(); }
-        function renderProjectList() { /* ... (Logic เดิม) ... */ const projectList = document.getElementById('projectList'); projectList.innerHTML = ''; window.projects.forEach((project, index) => { const projectItem = document.createElement('div'); projectItem.className = 'project-item'; if (window.selectedProjectIds.has(project.id)) { projectItem.classList.add('selected'); } projectItem.innerHTML = `<input type="checkbox" class="project-checkbox" id="project-${project.id}" ${window.selectedProjectIds.has(project.id) ? 'checked' : ''} onchange="toggleProject(${project.id})"><div class="project-color" style="background: ${project.color}"></div><label for="project-${project.id}" style="cursor: pointer; flex: 1;">${project.name} <span style="font-size: 12px; color: #666;">(${project.tasks.length} tasks)</span></label><button onclick="editProjectName(${index})" style="padding: 5px 10px; font-size: 12px;">✏️</button>${window.projects.length > 1 ? `<button onclick="deleteProject(${index})" style="padding: 5px 10px; font-size: 12px; background: #ff4444;">🗑️</button>` : ''}`; projectList.appendChild(projectItem); }); updateProjectSelect(); }
-        function toggleProject(id) { if(window.selectedProjectIds.has(id)) window.selectedProjectIds.delete(id); else window.selectedProjectIds.add(id); renderProjectList(); renderTimeline(); updateStats(); }
-        function selectAllProjects() { window.projects.forEach(p => window.selectedProjectIds.add(p.id)); renderProjectList(); renderTimeline(); updateStats(); }
-        function deselectAllProjects() { window.selectedProjectIds.clear(); renderProjectList(); renderTimeline(); updateStats(); }
-        function setViewMode(mode) { viewMode = mode; document.getElementById('monthView').classList.toggle('active', mode==='month'); document.getElementById('weekView').classList.toggle('active', mode==='week'); renderTimeline(); }
-        function zoomIn() { if(zoomLevel < 200) { zoomLevel+=25; document.getElementById('zoomLevel').textContent=zoomLevel+'%'; renderTimeline(); } }
-        function zoomOut() { if(zoomLevel > 50) { zoomLevel-=25; document.getElementById('zoomLevel').textContent=zoomLevel+'%'; renderTimeline(); } }
-        function applyFilter() { filterPhase = document.getElementById('phaseFilter').value; renderTimeline(); }
-        function updateProgressValue() { document.getElementById('progressValue').textContent = document.getElementById('taskProgress').value + '%'; }
-        function addNewProject() { const name = prompt('ชื่อโครงการใหม่:', `Project ${window.projects.length + 1}`); if(name) { const p = { id: Date.now(), name: name, startDate: '2025-01-01', endDate: '2025-12-31', color: projectColors[window.projects.length % projectColors.length], tasks: [] }; window.projects.push(p); window.selectedProjectIds.add(p.id); renderProjectList(); renderTimeline(); } }
-        function editProjectName(idx) { const name = prompt('แก้ไขชื่อ:', window.projects[idx].name); if(name) { window.projects[idx].name = name; renderProjectList(); renderTimeline(); } }
-        function deleteProject(idx) { if(window.projects.length<=1) return alert('ต้องมีอย่างน้อย 1 โครงการ'); if(confirm('ลบโครงการ?')) { window.selectedProjectIds.delete(window.projects[idx].id); window.projects.splice(idx, 1); renderProjectList(); renderTimeline(); } }
-        function getDateRange() { let min=new Date('2100-01-01'), max=new Date('2000-01-01'); const sels = window.projects.filter(p => window.selectedProjectIds.has(p.id)); if(sels.length===0) return {start: new Date('2025-01-01'), end: new Date('2025-12-31')}; sels.forEach(p => { if(p.tasks.length>0) p.tasks.forEach(t => { const s=new Date(t.startDate), e=new Date(t.endDate); if(s<min) min=s; if(e>max) max=e; }); else { const s=new Date(p.startDate||'2025-01-01'), e=new Date(p.endDate||'2025-12-31'); if(s<min) min=s; if(e>max) max=e; } }); min.setDate(min.getDate()-7); max.setDate(max.getDate()+7); return {start: min, end: max}; }
-        function renderCalendarHeader() { const h=document.getElementById('calendarHeader'); h.innerHTML=''; const {start, end} = getDateRange(); let cur = new Date(start); if(viewMode==='week') { cur.setDate(cur.getDate()-cur.getDay()); while(cur<=end) { const d=document.createElement('div'); d.className='time-label'; d.style.minWidth=(40*zoomLevel/100)+'px'; const s=new Date(cur), e=new Date(cur); e.setDate(e.getDate()+6); d.textContent=`W${Math.ceil(((new Date(s.getFullYear(),0,1)-s)/86400000+s.getDay()+1)/-7)}`; d.textContent = 'W'+Math.ceil((((s - new Date(s.getFullYear(), 0, 1)) / 86400000) + new Date(s.getFullYear(), 0, 1).getDay() + 1) / 7); d.title=`${s.toLocaleDateString()}-${e.toLocaleDateString()}`; h.appendChild(d); cur.setDate(cur.getDate()+7); } } else { cur.setDate(1); while(cur<=end) { const d=document.createElement('div'); d.className='time-label month'; d.style.minWidth=(100*zoomLevel/100)+'px'; d.textContent=cur.toLocaleDateString('th-TH',{month:'short',year:'numeric'}); h.appendChild(d); cur.setMonth(cur.getMonth()+1); } } }
-        function renderTasks() { const l=document.getElementById('taskList'); l.innerHTML=''; const {start, end}=getDateRange(); const total=(end-start)/(86400000); const sels=window.projects.filter(p=>window.selectedProjectIds.has(p.id)); sels.forEach(p=>{ const g=document.createElement('div'); g.className='project-group'; g.style.borderLeftColor=p.color; g.innerHTML=`<div class="project-group-header"><div class="project-color" style="background:${p.color}"></div><span>${p.name}</span><span style="font-size:12px;color:#666">(${p.tasks.length})</span></div>`; const tasks = filterPhase==='all'?p.tasks:p.tasks.filter(t=>t.phase===filterPhase); tasks.forEach(t=>{ const r=document.createElement('div'); r.className='task-row'; r.innerHTML=`<div class="task-name"><div class="task-info"><div>${t.name}</div><div class="task-progress-text">${t.progress||0}%</div></div><div class="task-actions"><button class="task-action-btn" onclick="editTask('${p.id}','${t.id}')">✏️</button><button class="task-action-btn delete" onclick="deleteTask('${p.id}','${t.id}')">🗑️</button></div></div>`; const tl=document.createElement('div'); tl.className='task-timeline'; const cnt=viewMode==='week'?52:12; for(let i=0;i<=cnt;i++){const gl=document.createElement('div'); gl.className='grid-line'; gl.style.left=`${(i*100/cnt)}%`; tl.appendChild(gl);} const s=new Date(t.startDate), e=new Date(t.endDate); const left=((s-start)/86400000/total)*100, width=((e-s)/86400000/total)*100; const bar=document.createElement('div'); bar.className='task-bar-container'; bar.style.left=`${left}%`; bar.style.width=`${Math.max(width,0.5)}%`; bar.innerHTML=`<div class="task-bar ${t.phase}" style="width:${t.progress||0}%"></div><div class="task-bar-label">${t.progress||0}%</div><div class="task-duration">${Math.floor((e-s)/86400000)}d</div>`; tl.appendChild(bar); r.appendChild(tl); g.appendChild(r); }); if(tasks.length>0) l.appendChild(g); }); }
-        function updateProjectSelect() { const s=document.getElementById('taskProject'); s.innerHTML=''; window.projects.forEach(p=>{const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; s.appendChild(o);}); }
-        function addTask() { currentEditingTask=null; document.getElementById('taskForm').style.display='block'; document.getElementById('taskNameInput').value=''; document.getElementById('taskStart').value=''; document.getElementById('taskEnd').value=''; document.getElementById('taskProgress').value=0; updateProjectSelect(); }
-        function editTask(pid, tid) { const p=window.projects.find(x=>x.id==pid), t=p.tasks.find(x=>x.id==tid); currentEditingTask={pid, tid}; document.getElementById('taskForm').style.display='block'; document.getElementById('taskProject').value=pid; document.getElementById('taskNameInput').value=t.name; document.getElementById('taskStart').value=t.startDate; document.getElementById('taskEnd').value=t.endDate; document.getElementById('taskPhase').value=t.phase; document.getElementById('taskProgress').value=t.progress||0; updateProgressValue(); updateProjectSelect(); }
-        function deleteTask(pid, tid) { if(confirm('ลบ?')) { const p=window.projects.find(x=>x.id==pid); p.tasks=p.tasks.filter(x=>x.id!=tid); renderTimeline(); } }
-        function saveTask() { const pid=document.getElementById('taskProject').value, t={id:currentEditingTask?currentEditingTask.tid:Date.now().toString(), name:document.getElementById('taskNameInput').value, startDate:document.getElementById('taskStart').value, endDate:document.getElementById('taskEnd').value, phase:document.getElementById('taskPhase').value, progress:parseInt(document.getElementById('taskProgress').value)}; if(!t.name||!t.startDate||!t.endDate) return alert('กรอกให้ครบ'); const p=window.projects.find(x=>x.id==pid); if(currentEditingTask) { if(currentEditingTask.pid==pid) { const idx=p.tasks.findIndex(x=>x.id==currentEditingTask.tid); p.tasks[idx]=t; } else { const op=window.projects.find(x=>x.id==currentEditingTask.pid); op.tasks=op.tasks.filter(x=>x.id!=currentEditingTask.tid); p.tasks.push(t); } } else p.tasks.push(t); document.getElementById('taskForm').style.display='none'; renderProjectList(); renderTimeline(); }
-        function cancelTask() { document.getElementById('taskForm').style.display='none'; }
-        function quickSave() { saveToFile(); }
-        function saveToFile() { const data={projects:window.projects, selectedProjectIds:Array.from(window.selectedProjectIds), exportDate:new Date().toISOString()}; const blob=new Blob([JSON.stringify(data)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`timeline_backup_${new Date().toISOString().slice(0,10)}.json`; a.click(); showNotification('✅ Saved locally'); }
-        function exportSelectedProjects() { saveToFile(); }
-        function showNotification(msg, type) { const n=document.createElement('div'); n.textContent=msg; n.style.cssText=`position:fixed;top:20px;right:20px;background:${type==='success'?'#28a745':'#667eea'};color:white;padding:15px;border-radius:10px;z-index:10000;`; document.body.appendChild(n); setTimeout(()=>n.remove(),3000); }
-        function updateStats() { /* (Simplified Stats) */ }
-        function loadSampleProjects() { window.projects=[{id:1,name:'Sample Project',startDate:'2025-01-01',endDate:'2025-12-31',color:'#667eea',tasks:[{id:'t1',name:'Task 1',startDate:'2025-01-01',endDate:'2025-02-01',phase:'phase1',progress:50}]}]; renderProjectList(); renderTimeline(); }
-
-        document.addEventListener('DOMContentLoaded', initializeProjects);
-    </script>
-</body>
-</html>
-
+        .container { max-width: 1800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95);
