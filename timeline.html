@@ -11,9 +11,9 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ แก้ไข API Key ให้ถูกต้องตามที่คุณส่งมาล่าสุด (w เล็ก, N ใหญ่)
+        // ✅ แก้ไข API Key ให้ถูกต้องเป๊ะๆ (W ใหญ่) ตามภาพ Project Settings
         const firebaseConfig = {
-            apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
+            apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
             authDomain: "benz-ab922.firebaseapp.com",
             projectId: "benz-ab922",
             storageBucket: "benz-ab922.firebasestorage.app",
@@ -38,10 +38,10 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                // onAuthStateChanged จะทำงานต่อเอง
+                // ไม่ต้องทำอะไรต่อ onAuthStateChanged จะทำงานเอง
             } catch (error) {
                 console.error("Login Error:", error);
-                alert('❌ ล็อกอินไม่ผ่าน: ' + error.message);
+                alert('❌ ล็อกอินไม่ผ่าน: ' + error.message + '\n(เช็ค Email/Pass หรือ API Key)');
             }
         };
 
@@ -91,6 +91,7 @@
                 showNotification(`✅ บันทึกแล้ว!`, 'success');
             } catch (e) {
                 console.error("Error: ", e);
+                // alert('❌ Error: ' + e.message); // ปิด Alert รบกวนเวลา auto-save
             }
         };
 
@@ -479,255 +480,6 @@
                 renderTimeline();
                 if(window.saveToCloud) window.saveToCloud(); // Auto Save
             }
-        }
-        
-        function getDateRange() {
-            let minDate = new Date('2100-01-01');
-            let maxDate = new Date('2000-01-01');
-            
-            const selectedProjects = window.projects.filter(p => window.selectedProjectIds.has(p.id));
-            if (selectedProjects.length === 0) return { start: new Date('2025-01-01'), end: new Date('2025-12-31') };
-            
-            selectedProjects.forEach(project => {
-                if(project.tasks && project.tasks.length > 0) {
-                    project.tasks.forEach(t => {
-                        const s = new Date(t.startDate);
-                        const e = new Date(t.endDate);
-                        if(s < minDate) minDate = s;
-                        if(e > maxDate) maxDate = e;
-                    });
-                } else {
-                    const projectStart = new Date(project.startDate || '2025-01-01');
-                    const projectEnd = new Date(project.endDate || '2025-12-31');
-                    if (projectStart < minDate) minDate = projectStart;
-                    if (projectEnd > maxDate) maxDate = projectEnd;
-                }
-            });
-            
-            minDate.setDate(minDate.getDate() - 7);
-            maxDate.setDate(maxDate.getDate() + 7);
-            
-            return { start: minDate, end: maxDate };
-        }
-        
-        function renderCalendarHeader() {
-            const header = document.getElementById('calendarHeader');
-            header.innerHTML = '';
-            const { start, end } = getDateRange();
-            if (viewMode === 'week') {
-                let currentDate = new Date(start);
-                currentDate.setDate(currentDate.getDate() - currentDate.getDay());
-                while (currentDate <= end) {
-                    const weekDiv = document.createElement('div');
-                    weekDiv.className = 'time-label';
-                    weekDiv.style.minWidth = (40 * zoomLevel / 100) + 'px';
-                    const weekStart = new Date(currentDate);
-                    const weekEnd = new Date(currentDate);
-                    weekEnd.setDate(weekEnd.getDate() + 6);
-                    weekDiv.textContent = `W${getWeekNumber(weekStart)}`;
-                    weekDiv.title = `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
-                    header.appendChild(weekDiv);
-                    currentDate.setDate(currentDate.getDate() + 7);
-                }
-            } else {
-                let currentDate = new Date(start);
-                currentDate.setDate(1);
-                while (currentDate <= end) {
-                    const monthDiv = document.createElement('div');
-                    monthDiv.className = 'time-label month';
-                    monthDiv.style.minWidth = (100 * zoomLevel / 100) + 'px';
-                    monthDiv.textContent = currentDate.toLocaleDateString('th-TH', { month: 'short', year: 'numeric' });
-                    header.appendChild(monthDiv);
-                    currentDate.setMonth(currentDate.getMonth() + 1);
-                }
-            }
-        }
-        
-        function getWeekNumber(date) {
-            const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-            const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-            return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-        }
-        
-        function renderTasks() {
-            const taskList = document.getElementById('taskList');
-            taskList.innerHTML = '';
-            const { start: rangeStart, end: rangeEnd } = getDateRange();
-            const totalDays = Math.floor((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24));
-            const selectedProjects = window.projects.filter(p => window.selectedProjectIds.has(p.id));
-            
-            selectedProjects.forEach(project => {
-                const projectGroup = document.createElement('div');
-                projectGroup.className = 'project-group';
-                projectGroup.style.borderLeftColor = project.color;
-                
-                const projectHeader = document.createElement('div');
-                projectHeader.className = 'project-group-header';
-                projectHeader.innerHTML = `
-                    <div class="project-color" style="background: ${project.color}"></div>
-                    <span>${project.name}</span>
-                    <span style="font-size: 12px; color: #666;">(${project.tasks.length} tasks)</span>
-                `;
-                projectGroup.appendChild(projectHeader);
-                
-                const filteredTasks = filterPhase === 'all' 
-                    ? project.tasks 
-                    : project.tasks.filter(task => task.phase === filterPhase);
-                
-                filteredTasks.forEach(task => {
-                    const taskRow = document.createElement('div');
-                    taskRow.className = 'task-row';
-                    
-                    const taskName = document.createElement('div');
-                    taskName.className = 'task-name';
-                    taskName.innerHTML = `
-                        <div class="task-info">
-                            <div>${task.name}</div>
-                            <div class="task-progress-text">Progress: ${task.progress || 0}%</div>
-                        </div>
-                        <div class="task-actions">
-                            <button class="task-action-btn" onclick="editTask('${project.id}', '${task.id}')">✏️</button>
-                            <button class="task-action-btn delete" onclick="deleteTask('${project.id}', '${task.id}')">🗑️</button>
-                        </div>
-                    `;
-                    taskRow.appendChild(taskName);
-                    
-                    const taskTimeline = document.createElement('div');
-                    taskTimeline.className = 'task-timeline';
-                    
-                    const gridCount = viewMode === 'week' ? 52 : 12;
-                    for (let i = 0; i <= gridCount; i++) {
-                        const gridLine = document.createElement('div');
-                        gridLine.className = 'grid-line';
-                        gridLine.style.left = `${(i * 100 / gridCount)}%`;
-                        taskTimeline.appendChild(gridLine);
-                    }
-                    
-                    const taskStart = new Date(task.startDate);
-                    const taskEnd = new Date(task.endDate);
-                    const startOffset = Math.floor((taskStart - rangeStart) / (1000 * 60 * 60 * 24));
-                    const duration = Math.floor((taskEnd - taskStart) / (1000 * 60 * 60 * 24));
-                    const taskBarContainer = document.createElement('div');
-                    taskBarContainer.className = 'task-bar-container';
-                    const leftPos = (startOffset / totalDays) * 100;
-                    const widthVal = (duration / totalDays) * 100;
-                    taskBarContainer.style.left = `${leftPos}%`;
-                    taskBarContainer.style.width = `${Math.max(widthVal, 0.5)}%`;
-                    
-                    const taskBar = document.createElement('div');
-                    taskBar.className = `task-bar ${task.phase}`;
-                    taskBar.style.width = `${task.progress || 0}%`;
-                    
-                    const progressLabel = document.createElement('div');
-                    progressLabel.className = 'task-bar-label';
-                    progressLabel.textContent = `${task.progress || 0}%`;
-                    
-                    const durationLabel = document.createElement('div');
-                    durationLabel.className = 'task-duration';
-                    durationLabel.textContent = `${duration} days`;
-                    
-                    taskBarContainer.appendChild(taskBar);
-                    taskBarContainer.appendChild(progressLabel);
-                    taskBarContainer.appendChild(durationLabel);
-                    taskBarContainer.title = `${task.name}`;
-                    taskTimeline.appendChild(taskBarContainer);
-                    
-                    const today = new Date();
-                    if (today >= rangeStart && today <= rangeEnd) {
-                        const todayOffset = Math.floor((today - rangeStart) / (1000 * 60 * 60 * 24));
-                        const todayLine = document.createElement('div');
-                        todayLine.className = 'today-line';
-                        todayLine.style.left = `${(todayOffset / totalDays) * 100}%`;
-                        const todayMarker = document.createElement('div');
-                        todayMarker.className = 'today-marker';
-                        todayMarker.style.left = `${(todayOffset / totalDays) * 100}%`;
-                        todayMarker.textContent = 'Today';
-                        taskTimeline.appendChild(todayLine);
-                        taskTimeline.appendChild(todayMarker);
-                    }
-                    taskRow.appendChild(taskTimeline);
-                    projectGroup.appendChild(taskRow);
-                });
-                
-                if (filteredTasks.length > 0) {
-                    taskList.appendChild(projectGroup);
-                }
-            });
-        }
-        
-        function updateStats() {
-            const selectedProjects = window.projects.filter(p => window.selectedProjectIds.has(p.id));
-            const today = new Date();
-            let totalTaskCount = 0;
-            let completed = 0, inProgress = 0, overdue = 0;
-            let totalProgress = 0;
-            let taskCount = 0;
-            
-            selectedProjects.forEach(project => {
-                project.tasks.forEach(task => {
-                    totalTaskCount++;
-                    taskCount++;
-                    const startDate = new Date(task.startDate);
-                    const endDate = new Date(task.endDate);
-                    const progress = task.progress || 0;
-                    totalProgress += progress;
-                    
-                    if (progress === 100) {
-                        completed++;
-                    } else if (endDate < today && progress < 100) {
-                        overdue++;
-                    } else if (startDate <= today && endDate >= today) {
-                        inProgress++;
-                    }
-                });
-            });
-            
-            const overallProgress = taskCount > 0 ? Math.round(totalProgress / taskCount) : 0;
-            
-            document.getElementById('selectedProjects').textContent = selectedProjects.length;
-            document.getElementById('totalTasks').textContent = totalTaskCount;
-            document.getElementById('overallProgress').textContent = overallProgress + '%';
-            document.getElementById('completedTasks').textContent = completed;
-            document.getElementById('inProgressTasks').textContent = inProgress;
-            document.getElementById('overdueTasks').textContent = overdue;
-        }
-        
-        function updateProjectSelect() {
-            const select = document.getElementById('taskProject');
-            select.innerHTML = '';
-            window.projects.forEach(project => {
-                const option = document.createElement('option');
-                option.value = project.id;
-                option.textContent = project.name;
-                select.appendChild(option);
-            });
-        }
-        
-        function addTask() {
-            currentEditingTask = null;
-            document.getElementById('taskForm').style.display = 'block';
-            document.getElementById('taskNameInput').value = '';
-            document.getElementById('taskStart').value = '';
-            document.getElementById('taskEnd').value = '';
-            document.getElementById('taskPhase').value = 'phase1';
-            document.getElementById('taskProgress').value = 0;
-            document.getElementById('progressValue').textContent = '0%';
-            updateProjectSelect();
-        }
-        
-        function editTask(projectId, taskId) {
-            const project = window.projects.find(p => p.id == projectId);
-            const task = project.tasks.find(t => t.id == taskId);
-            currentEditingTask = { projectId, taskId };
-            document.getElementById('taskForm').style.display = 'block';
-            document.getElementById('taskProject').value = projectId;
-            document.getElementById('taskNameInput').value = task.name;
-            document.getElementById('taskStart').value = task.startDate;
-            document.getElementById('taskEnd').value = task.endDate;
-            document.getElementById('taskPhase').value = task.phase;
-            document.getElementById('taskProgress').value = task.progress || 0;
-            document.getElementById('progressValue').textContent = (task.progress || 0) + '%';
-            updateProjectSelect();
         }
         
         function deleteTask(projectId, taskId) {
