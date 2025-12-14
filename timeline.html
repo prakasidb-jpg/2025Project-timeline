@@ -11,20 +11,15 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ แก้ไข API Key ให้ถูกต้องตามภาพหลังบ้าน Firebase แล้ว (W ใหญ่, n เล็ก)
+        // ✅ แก้ไข API Key ให้ถูกต้องตามที่คุณส่งมาล่าสุด (w เล็ก, N ใหญ่)
         const firebaseConfig = {
-  apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
-  authDomain: "benz-ab922.firebaseapp.com",
-  projectId: "benz-ab922",
-  storageBucket: "benz-ab922.firebasestorage.app",
-  messagingSenderId: "746873956854",
-  appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
-  measurementId: "G-EBYCR340BL"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+            apiKey: "AIzaSyAKwENv4kzNmcTGHri1_mF_iagsycIqXd8",
+            authDomain: "benz-ab922.firebaseapp.com",
+            projectId: "benz-ab922",
+            storageBucket: "benz-ab922.firebasestorage.app",
+            messagingSenderId: "746873956854",
+            appId: "1:746873956854:web:02e72ef78ee58d05a73fd7",
+            measurementId: "G-EBYCR340BL"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -822,5 +817,3 @@ const analytics = getAnalytics(app);
     </script>
 </body>
 </html>
-
-
