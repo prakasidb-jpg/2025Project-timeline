@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timeline Manager (Secure Login)</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔒</text></svg>">
+    <title>Timeline Manager</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📊</text></svg>">
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ แก้ไข API Key ให้ถูกต้องเป๊ะๆ (W ใหญ่) ตามภาพ Project Settings
         const firebaseConfig = {
             apiKey: "AIzaSyAKWEnv4kzNmcTGHri1_mF_iagsycIqXd8",
             authDomain: "benz-ab922.firebaseapp.com",
@@ -26,37 +25,30 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- Auth Functions ---
         window.handleLogin = async function() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            
             if (!email || !pass) {
                 alert('กรุณากรอก Email และ Password');
                 return;
             }
-
             try {
                 await signInWithEmailAndPassword(auth, email, pass);
-                // ไม่ต้องทำอะไรต่อ onAuthStateChanged จะทำงานเอง
             } catch (error) {
-                console.error("Login Error:", error);
-                alert('❌ ล็อกอินไม่ผ่าน: ' + error.message + '\n(เช็ค Email/Pass หรือ API Key)');
+                console.error(error);
+                alert('Login Failed: ' + error.message);
             }
         };
 
         window.handleLogout = function() {
-            signOut(auth).then(() => {
-                window.location.reload();
-            });
+            signOut(auth).then(() => window.location.reload());
         };
 
-        // Monitor Auth State
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('appContent').style.display = 'block';
-                document.getElementById('userInfo').textContent = `👤 ${user.email}`;
+                document.getElementById('userInfo').textContent = user.email;
                 window.currentUserEmail = user.email;
                 window.listenToCloud(); 
             } else {
@@ -65,7 +57,6 @@
             }
         });
 
-        // --- Machine ID ---
         function getMachineID() {
             let machineId = localStorage.getItem('timeline_machine_id');
             if (!machineId) {
@@ -76,10 +67,8 @@
             return machineId;
         }
 
-        // --- Cloud Save Function (Auto-Save) ---
         window.saveToCloud = async function() {
             try {
-                showNotification('⏳ กำลังบันทึก...', 'info');
                 const machineID = getMachineID();
                 const dataToSave = {
                     projects: window.projects,
@@ -88,16 +77,19 @@
                     updatedByEmail: window.currentUserEmail
                 };
                 await setDoc(doc(db, "timeline", "projectData"), dataToSave);
-                showNotification(`✅ บันทึกแล้ว!`, 'success');
+                
+                // Show toast notification
+                const notif = document.createElement('div');
+                notif.textContent = '✅ บันทึกข้อมูลเรียบร้อย';
+                notif.style.cssText = 'position:fixed;top:20px;right:20px;background:#28a745;color:white;padding:10px 20px;border-radius:5px;z-index:9999;';
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 2000);
             } catch (e) {
-                console.error("Error: ", e);
-                // alert('❌ Error: ' + e.message); // ปิด Alert รบกวนเวลา auto-save
+                console.error("Save Error:", e);
             }
         };
 
-        // --- Cloud Listen Function ---
         window.listenToCloud = function() {
-            console.log("📡 Listening...");
             onSnapshot(doc(db, "timeline", "projectData"), (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     const data = docSnapshot.data();
@@ -109,463 +101,402 @@
                             }
                             window.renderProjectList();
                             window.renderTimeline();
-                            let msg = '☁️ ข้อมูลอัปเดตแล้ว';
-                            if (data.updatedByEmail) msg += ` โดย ${data.updatedByEmail}`;
-                            window.showNotification(msg, 'success');
                         }
                     }
                 }
             });
         };
     </script>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
         
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9999; display: flex; justify-content: center; align-items: center; }
         .login-box { background: white; padding: 40px; border-radius: 15px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
         .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
         .login-btn:hover { background: #5a6fd6; }
+        
         #appContent { display: none; }
-
         .container { max-width: 1800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); }
-        h1 { color: #333; margin-bottom: 10px; font-size: 2em; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        h1 { color: #333; margin-bottom: 10px; font-size: 2em; }
         .header-info { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; }
-        .project-selector { margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        
+        .project-selector, .view-controls, .task-form { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
         .project-list { display: flex; gap: 15px; flex-wrap: wrap; }
-        .project-item { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; transition: all 0.3s; }
-        .project-item.selected { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: #667eea; }
-        .project-checkbox { width: 20px; height: 20px; cursor: pointer; }
+        .project-item { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border: 2px solid #ddd; border-radius: 10px; cursor: pointer; }
+        .project-item.selected { background: #667eea; color: white; border-color: #667eea; }
         .project-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .view-controls { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        .view-toggle { display: flex; gap: 5px; background: white; padding: 5px; border-radius: 8px; }
-        .view-btn { padding: 8px 15px; background: white; border: 1px solid #ddd; cursor: pointer; transition: all 0.3s; border-radius: 5px; }
-        .view-btn.active { background: #667eea; color: white; border-color: #667eea; }
-        .zoom-controls { display: flex; gap: 10px; align-items: center; }
-        .zoom-btn { width: 35px; height: 35px; border-radius: 50%; background: white; border: 1px solid #ddd; cursor: pointer; font-size: 18px; transition: all 0.3s; }
-        .zoom-btn:hover { background: #667eea; color: white; border-color: #667eea; }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        button { padding: 10px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
-        .timeline-container { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; overflow-y: visible; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); position: relative; }
+        
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        button { padding: 10px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { transform: translateY(-2px); }
+        
+        .timeline-container { background: white; border-radius: 10px; padding: 20px; overflow-x: auto; margin-bottom: 20px; }
         .timeline-header { display: flex; border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-bottom: 10px; min-width: 1400px; position: sticky; top: 0; background: white; z-index: 100; }
-        .task-column { width: 350px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 10px; }
-        .calendar-grid { flex: 1; display: flex; position: relative; }
-        .time-label { flex: 1; text-align: center; font-weight: bold; color: #667eea; border-left: 1px solid #e0e0e0; padding: 5px; font-size: 12px; min-width: 40px; }
-        .time-label.month { min-width: 100px; }
-        .project-group { margin-bottom: 15px; border-left: 4px solid #ddd; padding-left: 10px; }
-        .project-group-header { background: #f8f9fa; padding: 8px 15px; margin-bottom: 5px; border-radius: 5px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
-        .task-row { display: flex; align-items: center; min-height: 55px; border-bottom: 1px solid #f0f0f0; position: relative; min-width: 1400px; }
-        .task-row:hover { background: #f8f9fa; }
-        .task-name { width: 350px; padding: 10px; font-size: 14px; color: #333; display: flex; justify-content: space-between; align-items: center; }
-        .task-info { flex: 1; }
-        .task-progress-text { font-size: 11px; color: #666; margin-top: 2px; }
-        .task-actions { display: flex; gap: 5px; }
-        .task-action-btn { padding: 2px 8px; font-size: 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .task-action-btn.delete { background: #ff4444; }
+        .task-column { width: 350px; font-weight: bold; }
+        .calendar-grid { flex: 1; display: flex; }
+        .time-label { flex: 1; text-align: center; border-left: 1px solid #ddd; padding: 5px; font-size: 12px; min-width: 40px; }
+        
+        .task-row { display: flex; align-items: center; height: 55px; border-bottom: 1px solid #f0f0f0; min-width: 1400px; }
+        .task-name { width: 350px; padding: 10px; font-size: 14px; display: flex; justify-content: space-between; }
         .task-timeline { flex: 1; position: relative; height: 45px; display: flex; align-items: center; }
-        .task-bar-container { position: absolute; height: 40px; border-radius: 20px; background: rgba(200, 200, 200, 0.3); overflow: visible; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.1); }
-        .task-bar { height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; position: relative; transition: all 0.3s; overflow: visible; }
+        
+        .task-bar-container { position: absolute; height: 40px; background: rgba(200,200,200,0.3); border-radius: 20px; overflow: visible; border: 1px solid #ddd; }
+        .task-bar { height: 100%; border-radius: 20px; }
         .task-bar.phase1 { background: linear-gradient(135deg, #667eea, #764ba2); }
         .task-bar.phase2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
         .task-bar.phase3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
         .task-bar.phase4 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
         .task-bar.phase5 { background: linear-gradient(135deg, #fa709a, #fee140); }
-        .task-bar-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; font-size: 14px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); white-space: nowrap; z-index: 10; pointer-events: none; }
-        .task-duration { position: absolute; top: -20px; left: 0; font-size: 10px; color: #666; white-space: nowrap; }
-        .grid-line { position: absolute; width: 1px; height: 100%; background: #f0f0f0; pointer-events: none; }
-        .today-line { position: absolute; width: 2px; height: 100%; background: #ff6b6b; pointer-events: none; z-index: 50; }
-        .today-marker { position: absolute; top: -20px; background: #ff6b6b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; z-index: 51; }
-        .stats-panel { display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap; }
-        .stat-card { flex: 1; min-width: 150px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        .stat-card h4 { color: #667eea; margin-bottom: 5px; font-size: 12px; }
-        .stat-card .value { font-size: 24px; font-weight: bold; color: #333; }
-        .task-form { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        
+        .task-bar-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); font-size: 12px; }
+        .task-duration { position: absolute; top: -18px; left: 0; font-size: 10px; color: #666; }
+        
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
-        .progress-input-group { display: flex; align-items: center; gap: 10px; }
-        .progress-input { flex: 1; }
-        .progress-value { font-weight: bold; color: #667eea; min-width: 50px; text-align: right; }
-        .legend { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; }
-        .legend h3 { margin-bottom: 10px; color: #333; }
-        .legend-item { display: inline-block; margin: 5px 15px; }
-        .legend-color { display: inline-block; width: 30px; height: 15px; border-radius: 5px; margin-right: 5px; vertical-align: middle; }
-        .filter-group { display: flex; gap: 10px; align-items: center; }
-        .filter-select { padding: 8px; border: 1px solid #ddd; border-radius: 5px; background: white; }
-        .footer { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; text-align: center; color: #666; }
-        .footer a { color: #667eea; text-decoration: none; }
-        .online-badge { background-color: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; vertical-align: middle; margin-left: 10px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
+        
+        .online-badge { background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 10px; }
+        .stats-panel { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { background: white; padding: 15px; border-radius: 10px; flex: 1; min-width: 150px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-card .val { font-size: 20px; font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
     <div id="loginOverlay">
         <div class="login-box">
             <div style="font-size: 60px; margin-bottom: 10px;">🔒</div>
-            <h2 style="margin-bottom: 20px;">Team Login</h2>
-            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">กรุณาใส่ Email และ Password ที่ได้รับจาก Admin</p>
-            <input type="email" id="email" placeholder="name@company.com">
+            <h2>Team Login</h2>
+            <p style="color:#666; margin-bottom:20px;">Timeline Manager System</p>
+            <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
-            <button class="login-btn" onclick="handleLogin()">เข้าสู่ระบบ</button>
+            <button class="login-btn" onclick="handleLogin()">Login</button>
         </div>
     </div>
 
     <div id="appContent" class="container">
         <div class="header-info">
-            <h2>🚀 Team Project Timeline Manager <span class="online-badge">Secure</span></h2>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
-                <span id="userInfo" style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 14px;"></span>
-                <button onclick="handleLogout()" style="background: rgba(255,255,255,0.2); border: 1px solid white; padding: 5px 10px; font-size: 12px;">Logout</button>
+            <h2>🚀 Timeline Manager <span class="online-badge">Online</span></h2>
+            <div style="margin-top:10px;">
+                <span id="userInfo"></span> | 
+                <button onclick="handleLogout()" style="padding:5px 10px; font-size:12px; border:1px solid white; background:transparent;">Logout</button>
             </div>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>📊 Project Timeline Dashboard</h1>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="window.saveToCloud()" title="Save to Online Database" style="background: linear-gradient(135deg, #11998e, #38ef7d); padding: 8px 16px; font-size: 14px; font-weight: bold;">
-                    ☁️ Save to Cloud
-                </button>
-                <button onclick="quickSave()" title="Quick Save to File" style="background: #28a745; padding: 8px 16px; font-size: 14px;">
-                    💾 File Backup
-                </button>
-            </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h1>Dashboard</h1>
+            <button onclick="window.saveToCloud()" style="background: linear-gradient(135deg, #11998e, #38ef7d);">☁️ Force Save</button>
         </div>
-        
+
+        <div class="stats-panel">
+            <div class="stat-card">Tasks ทั้งหมด<div class="val" id="st_total">0</div></div>
+            <div class="stat-card">กำลังทำ<div class="val" id="st_progress">0</div></div>
+            <div class="stat-card">เสร็จแล้ว<div class="val" id="st_done">0</div></div>
+        </div>
+
         <div class="project-selector">
-            <h3>เลือกโครงการที่ต้องการดู:</h3>
+            <h3>Projects:</h3>
             <div class="project-list" id="projectList"></div>
-            <div style="margin-top: 15px;">
-                <button onclick="selectAllProjects()">✅ เลือกทั้งหมด</button>
-                <button onclick="deselectAllProjects()">❌ ยกเลิกทั้งหมด</button>
-                <button onclick="addNewProject()">➕ เพิ่มโครงการใหม่</button>
+            <div style="margin-top:10px;">
+                <button onclick="selectAll()">Select All</button>
+                <button onclick="addNewProject()">+ New Project</button>
             </div>
         </div>
-        
+
         <div class="view-controls">
-            <div class="view-toggle">
-                <button class="view-btn active" onclick="setViewMode('month')" id="monthView">📅 รายเดือน</button>
-                <button class="view-btn" onclick="setViewMode('week')" id="weekView">📆 รายสัปดาห์</button>
-            </div>
-            <div class="zoom-controls">
-                <button class="zoom-btn" onclick="zoomOut()">−</button>
-                <span id="zoomLevel">100%</span>
-                <button class="zoom-btn" onclick="zoomIn()">+</button>
-            </div>
-            <div class="filter-group">
-                <label>กรอง Phase:</label>
-                <select class="filter-select" id="phaseFilter" onchange="applyFilter()">
-                    <option value="all">ทั้งหมด</option>
-                    <option value="phase1">Phase 1: Research</option>
-                    <option value="phase2">Phase 2: Development</option>
-                    <option value="phase3">Phase 3: Testing</option>
-                    <option value="phase4">Phase 4: Scale-up</option>
-                    <option value="phase5">Phase 5: Launch</option>
-                </select>
-            </div>
+            <button onclick="setViewMode('month')">Month View</button>
+            <button onclick="setViewMode('week')">Week View</button>
+            <button onclick="zoomOut()">- Zoom</button>
+            <button onclick="zoomIn()">+ Zoom</button>
+            <span style="margin-left:10px;">Filter Phase:</span>
+            <select id="phaseFilter" onchange="applyFilter()" style="padding:5px;">
+                <option value="all">All</option>
+                <option value="phase1">Phase 1</option>
+                <option value="phase2">Phase 2</option>
+                <option value="phase3">Phase 3</option>
+                <option value="phase4">Phase 4</option>
+                <option value="phase5">Phase 5</option>
+            </select>
         </div>
-        
-        <div class="stats-panel" id="statsPanel">
-            <div class="stat-card"><h4>โครงการที่เลือก</h4><div class="value" id="selectedProjects">0</div></div>
-            <div class="stat-card"><h4>จำนวน Tasks ทั้งหมด</h4><div class="value" id="totalTasks">0</div></div>
-            <div class="stat-card"><h4>ความคืบหน้าเฉลี่ย</h4><div class="value" id="overallProgress">0%</div></div>
-            <div class="stat-card"><h4>Tasks เสร็จ 100%</h4><div class="value" id="completedTasks">0</div></div>
-            <div class="stat-card"><h4>Tasks กำลังดำเนินการ</h4><div class="value" id="inProgressTasks">0</div></div>
-            <div class="stat-card"><h4>Tasks เกินกำหนด</h4><div class="value" id="overdueTasks" style="color: #ff4444;">0</div></div>
-        </div>
-        
+
         <div class="controls">
-            <button onclick="addTask()">➕ เพิ่ม Task ใหม่</button>
-            <button onclick="window.saveToCloud()" style="background: linear-gradient(135deg, #11998e, #38ef7d);">☁️ บันทึกออนไลน์</button>
-            <button onclick="exportSelectedProjects()">📥 Export</button>
-            <button onclick="loadSampleProjects()">📝 โหลดตัวอย่าง</button>
+            <button onclick="addTask()">+ New Task</button>
         </div>
-        
-        <div class="timeline-container" id="timelineContainer">
+
+        <div class="timeline-container">
             <div class="timeline-header">
-                <div class="task-column">Project / Tasks <span style="font-size: 12px; color: #666;">(Progress %)</span></div>
+                <div class="task-column">Task Name</div>
                 <div class="calendar-grid" id="calendarHeader"></div>
             </div>
             <div id="taskList"></div>
         </div>
-        
+
         <div class="task-form" id="taskForm" style="display:none;">
-            <h3>เพิ่ม/แก้ไข Task</h3>
-            <div class="form-group"><label>โครงการ:</label><select id="taskProject"></select></div>
-            <div class="form-group"><label>ชื่อ Task:</label><input type="text" id="taskNameInput"></div>
-            <div class="form-group"><label>วันเริ่มต้น:</label><input type="date" id="taskStart"></div>
-            <div class="form-group"><label>วันสิ้นสุด:</label><input type="date" id="taskEnd"></div>
+            <h3>Task Details</h3>
+            <div class="form-group"><label>Project:</label><select id="t_project"></select></div>
+            <div class="form-group"><label>Name:</label><input type="text" id="t_name"></div>
+            <div class="form-group"><label>Start:</label><input type="date" id="t_start"></div>
+            <div class="form-group"><label>End:</label><input type="date" id="t_end"></div>
             <div class="form-group"><label>Phase:</label>
-                <select id="taskPhase">
-                    <option value="phase1">Phase 1: Research & Planning</option>
-                    <option value="phase2">Phase 2: Development</option>
-                    <option value="phase3">Phase 3: Testing & Validation</option>
-                    <option value="phase4">Phase 4: Scale-up</option>
-                    <option value="phase5">Phase 5: Registration & Launch</option>
+                <select id="t_phase">
+                    <option value="phase1">Phase 1</option>
+                    <option value="phase2">Phase 2</option>
+                    <option value="phase3">Phase 3</option>
+                    <option value="phase4">Phase 4</option>
+                    <option value="phase5">Phase 5</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Progress (%):</label>
-                <div class="progress-input-group">
-                    <input type="range" id="taskProgress" class="progress-input" min="0" max="100" value="0" oninput="updateProgressValue()">
-                    <span class="progress-value" id="progressValue">0%</span>
-                </div>
-            </div>
-            <button onclick="saveTask()">💾 บันทึก Task</button>
-            <button onclick="cancelTask()">❌ ยกเลิก</button>
-        </div>
-        
-        <div class="legend">
-            <h3>คำอธิบาย:</h3>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #667eea, #764ba2);"></span> Phase 1</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #f093fb, #f5576c);"></span> Phase 2</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #4facfe, #00f2fe);"></span> Phase 3</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #43e97b, #38f9d7);"></span> Phase 4</div>
-            <div class="legend-item"><span class="legend-color" style="background: linear-gradient(135deg, #fa709a, #fee140);"></span> Phase 5</div>
+            <div class="form-group"><label>Progress %:</label><input type="number" id="t_progress" min="0" max="100"></div>
+            <button onclick="saveTaskLocal()">Save Task</button>
+            <button onclick="document.getElementById('taskForm').style.display='none'" style="background:#666;">Cancel</button>
         </div>
     </div>
-    
+
     <script>
-        // ✅ Restore Full Logic & Add Auto-Save
         window.projects = [];
-        window.selectedProjectIds = new Set();
-        let currentEditingTask = null;
+        window.selectedIds = new Set();
+        let editTaskMeta = null;
         let viewMode = 'month';
-        let zoomLevel = 100;
-        let filterPhase = 'all';
-        
-        const projectColors = [
-            '#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a',
-            '#ff6b6b', '#ffd93d', '#6bcf7f', '#a78bfa', '#f59e0b'
-        ];
-        
-        window.renderProjectList = renderProjectList;
-        window.renderTimeline = renderTimeline;
-        window.showNotification = showNotification;
+        let zoom = 100;
+        let filter = 'all';
+        const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a'];
 
-        function initializeProjects() {
-            renderProjectList();
+        function init() {
+            renderProjects();
             renderTimeline();
         }
-        
-        function renderProjectList() {
-            const projectList = document.getElementById('projectList');
-            projectList.innerHTML = '';
-            
-            window.projects.forEach((project, index) => {
-                const projectItem = document.createElement('div');
-                projectItem.className = 'project-item';
-                if (window.selectedProjectIds.has(project.id)) {
-                    projectItem.classList.add('selected');
-                }
-                
-                projectItem.innerHTML = `
-                    <input type="checkbox" 
-                           class="project-checkbox" 
-                           id="project-${project.id}"
-                           ${window.selectedProjectIds.has(project.id) ? 'checked' : ''}
-                           onchange="toggleProject(${project.id})">
-                    <div class="project-color" style="background: ${project.color}"></div>
-                    <label for="project-${project.id}" style="cursor: pointer; flex: 1;">
-                        ${project.name}
-                        <span style="font-size: 12px; color: #666;">(${project.tasks.length} tasks)</span>
-                    </label>
-                    <button onclick="editProjectName(${index})" style="padding: 5px 10px; font-size: 12px;">✏️</button>
-                    ${window.projects.length > 1 ? `<button onclick="deleteProject(${index})" style="padding: 5px 10px; font-size: 12px; background: #ff4444;">🗑️</button>` : ''}
+
+        // --- Render Projects ---
+        window.renderProjects = function() {
+            const list = document.getElementById('projectList');
+            list.innerHTML = '';
+            window.projects.forEach((p, idx) => {
+                const div = document.createElement('div');
+                div.className = `project-item ${window.selectedIds.has(p.id)?'selected':''}`;
+                div.innerHTML = `
+                    <span onclick="toggleProj(${p.id})">${p.name}</span>
+                    <span style="font-size:10px; cursor:pointer;" onclick="delProj(${idx})">❌</span>
                 `;
-                
-                projectList.appendChild(projectItem);
+                list.appendChild(div);
             });
-            
-            updateProjectSelect();
-        }
-        
-        function toggleProject(projectId) {
-            if (window.selectedProjectIds.has(projectId)) {
-                window.selectedProjectIds.delete(projectId);
-            } else {
-                window.selectedProjectIds.add(projectId);
+            updateSelect();
+        };
+
+        window.toggleProj = function(id) {
+            if(window.selectedIds.has(id)) window.selectedIds.delete(id);
+            else window.selectedIds.add(id);
+            renderProjects(); renderTimeline();
+        };
+        window.selectAll = function() {
+            window.projects.forEach(p => window.selectedIds.add(p.id));
+            renderProjects(); renderTimeline();
+        };
+
+        // --- CRUD Logic + AUTO SAVE ---
+        window.addNewProject = function() {
+            const name = prompt("Project Name:");
+            if(name) {
+                const pid = Date.now();
+                window.projects.push({id: pid, name: name, color: colors[window.projects.length%5], tasks:[]});
+                window.selectedIds.add(pid);
+                renderProjects();
+                if(window.saveToCloud) window.saveToCloud(); // Auto Save
             }
-            renderProjectList();
-            renderTimeline();
-            updateStats();
-        }
-        
-        function selectAllProjects() {
-            window.projects.forEach(project => window.selectedProjectIds.add(project.id));
-            renderProjectList();
-            renderTimeline();
-            updateStats();
-        }
-        
-        function deselectAllProjects() {
-            window.selectedProjectIds.clear();
-            renderProjectList();
-            renderTimeline();
-            updateStats();
-        }
-        
-        function setViewMode(mode) {
-            viewMode = mode;
-            document.getElementById('monthView').classList.toggle('active', mode === 'month');
-            document.getElementById('weekView').classList.toggle('active', mode === 'week');
-            renderTimeline();
-        }
-        
-        function zoomIn() {
-            if (zoomLevel < 200) {
-                zoomLevel += 25;
-                document.getElementById('zoomLevel').textContent = zoomLevel + '%';
-                renderTimeline();
+        };
+
+        window.delProj = function(idx) {
+            if(confirm("Delete Project?")) {
+                window.projects.splice(idx, 1);
+                renderProjects(); renderTimeline();
+                if(window.saveToCloud) window.saveToCloud(); // Auto Save
             }
-        }
-        
-        function zoomOut() {
-            if (zoomLevel > 50) {
-                zoomLevel -= 25;
-                document.getElementById('zoomLevel').textContent = zoomLevel + '%';
-                renderTimeline();
-            }
-        }
-        
-        function applyFilter() {
-            filterPhase = document.getElementById('phaseFilter').value;
-            renderTimeline();
-        }
-        
-        function updateProgressValue() {
-            const value = document.getElementById('taskProgress').value;
-            document.getElementById('progressValue').textContent = value + '%';
-        }
-        
-        function addNewProject() {
-            const projectName = prompt('ชื่อโครงการใหม่:', `Project ${window.projects.length + 1}`);
-            if (projectName) {
-                const newProject = {
-                    id: Date.now(),
-                    name: projectName,
-                    startDate: '2025-01-01',
-                    endDate: '2025-12-31',
-                    color: projectColors[window.projects.length % projectColors.length],
-                    tasks: []
-                };
-                window.projects.push(newProject);
-                window.selectedProjectIds.add(newProject.id);
-                renderProjectList();
+        };
+
+        window.addTask = function() {
+            editTaskMeta = null;
+            document.getElementById('taskForm').style.display='block';
+            document.getElementById('t_name').value='';
+            document.getElementById('t_start').value='';
+            document.getElementById('t_end').value='';
+            document.getElementById('t_progress').value=0;
+            updateSelect();
+        };
+
+        window.editTask = function(pid, tid) {
+            const p = window.projects.find(x=>x.id==pid);
+            const t = p.tasks.find(x=>x.id==tid);
+            editTaskMeta = {pid, tid};
+            document.getElementById('taskForm').style.display='block';
+            document.getElementById('t_project').value=pid;
+            document.getElementById('t_name').value=t.name;
+            document.getElementById('t_start').value=t.startDate;
+            document.getElementById('t_end').value=t.endDate;
+            document.getElementById('t_phase').value=t.phase;
+            document.getElementById('t_progress').value=t.progress;
+            updateSelect();
+        };
+
+        window.delTask = function(pid, tid) {
+            if(confirm("Delete Task?")) {
+                const p = window.projects.find(x=>x.id==pid);
+                p.tasks = p.tasks.filter(x=>x.id != tid);
                 renderTimeline();
                 if(window.saveToCloud) window.saveToCloud(); // Auto Save
             }
-        }
-        
-        function editProjectName(index) {
-            const newName = prompt('แก้ไขชื่อโครงการ:', window.projects[index].name);
-            if (newName) {
-                window.projects[index].name = newName;
-                renderProjectList();
-                renderTimeline();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
-            }
-        }
-        
-        function deleteProject(index) {
-            if (window.projects.length <= 1) {
-                alert('ต้องมีโครงการอย่างน้อย 1 โครงการ');
-                return;
-            }
-            
-            if (confirm(`ต้องการลบโครงการ "${window.projects[index].name}" หรือไม่?`)) {
-                window.selectedProjectIds.delete(window.projects[index].id);
-                window.projects.splice(index, 1);
-                renderProjectList();
-                renderTimeline();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
-            }
-        }
-        
-        function deleteTask(projectId, taskId) {
-            if (confirm('ต้องการลบ Task นี้หรือไม่?')) {
-                const project = window.projects.find(p => p.id == projectId);
-                project.tasks = project.tasks.filter(t => t.id != taskId);
-                renderTimeline();
-                if(window.saveToCloud) window.saveToCloud(); // Auto Save
-            }
-        }
-        
-        function saveTask() {
-            const projectId = document.getElementById('taskProject').value;
-            const task = {
-                id: currentEditingTask ? currentEditingTask.taskId : Date.now().toString(),
-                name: document.getElementById('taskNameInput').value,
-                startDate: document.getElementById('taskStart').value,
-                endDate: document.getElementById('taskEnd').value,
-                phase: document.getElementById('taskPhase').value,
-                progress: parseInt(document.getElementById('taskProgress').value)
+        };
+
+        window.saveTaskLocal = function() {
+            const pid = document.getElementById('t_project').value;
+            const tObj = {
+                id: editTaskMeta ? editTaskMeta.tid : Date.now().toString(),
+                name: document.getElementById('t_name').value,
+                startDate: document.getElementById('t_start').value,
+                endDate: document.getElementById('t_end').value,
+                phase: document.getElementById('t_phase').value,
+                progress: parseInt(document.getElementById('t_progress').value) || 0
             };
-            
-            if (!task.name || !task.startDate || !task.endDate) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
-            }
-            
-            const project = window.projects.find(p => p.id == projectId);
-            
-            if (currentEditingTask && currentEditingTask.projectId == projectId) {
-                const index = project.tasks.findIndex(t => t.id == currentEditingTask.taskId);
-                project.tasks[index] = task;
-            } else if (currentEditingTask) {
-                const oldProject = window.projects.find(p => p.id == currentEditingTask.projectId);
-                oldProject.tasks = oldProject.tasks.filter(t => t.id != currentEditingTask.taskId);
-                project.tasks.push(task);
+
+            if(!tObj.name || !tObj.startDate || !tObj.endDate) return alert("กรอกข้อมูลให้ครบ");
+
+            const p = window.projects.find(x => x.id == pid);
+            if(editTaskMeta) {
+                // Edit
+                if(editTaskMeta.pid == pid) {
+                    const idx = p.tasks.findIndex(x=>x.id == editTaskMeta.tid);
+                    p.tasks[idx] = tObj;
+                } else {
+                    // Move project
+                    const oldP = window.projects.find(x=>x.id == editTaskMeta.pid);
+                    oldP.tasks = oldP.tasks.filter(x=>x.id != editTaskMeta.tid);
+                    p.tasks.push(tObj);
+                }
             } else {
-                project.tasks.push(task);
+                // New
+                p.tasks.push(tObj);
             }
-            
-            document.getElementById('taskForm').style.display = 'none';
-            renderProjectList();
+
+            document.getElementById('taskForm').style.display='none';
             renderTimeline();
-            if(window.saveToCloud) window.saveToCloud(); // Auto Save
-        }
-        
-        function cancelTask() { document.getElementById('taskForm').style.display = 'none'; }
-        
-        function quickSave() { saveToFile(); }
-        function saveToFile() {
-            const data = {
-                projects: window.projects,
-                selectedProjectIds: Array.from(window.selectedProjectIds),
-                exportDate: new Date().toISOString()
-            };
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `timeline_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            showNotification('✅ Saved locally');
-        }
-        function exportSelectedProjects() { saveToFile(); }
-        
-        function showNotification(message, type='info') {
-            const notification = document.createElement('div');
-            notification.style.cssText = `position: fixed; top: 20px; right: 20px; background: ${type === 'success' ? '#28a745' : 'linear-gradient(135deg, #667eea, #764ba2)'}; color: white; padding: 15px 25px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 1000; animation: slideIn 0.3s ease; font-weight: bold;`;
-            notification.textContent = message;
-            const style = document.createElement('style');
-            style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }`;
-            document.head.appendChild(style);
-            document.body.appendChild(notification);
-            setTimeout(() => { notification.style.animation = 'slideOut 0.3s ease'; setTimeout(() => notification.remove(), 300); }, 3000);
-        }
-        
-        function loadSampleProjects() {
-            window.projects = [{id: 1, name: 'Sample Project', startDate: '2025-01-01', endDate: '2025-12-31', color: '#667eea', tasks: [{id: 't1', name: 'Task 1', startDate: '2025-01-01', endDate: '2025-02-01', phase: 'phase1', progress: 50}]}];
-            window.selectedProjectIds.clear();
-            window.projects.forEach(p => window.selectedProjectIds.add(p.id));
-            renderProjectList();
-            renderTimeline();
+            if(window.saveToCloud) window.saveToCloud(); // Auto Save Triggered!
+        };
+
+        function updateSelect() {
+            const s = document.getElementById('t_project');
+            s.innerHTML = '';
+            window.projects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.text = p.name;
+                s.appendChild(opt);
+            });
+            if(editTaskMeta) s.value = editTaskMeta.pid;
         }
 
-        document.addEventListener('DOMContentLoaded', initializeProjects);
+        // --- Timeline Core ---
+        window.renderTimeline = function() {
+            const h = document.getElementById('calendarHeader');
+            const l = document.getElementById('taskList');
+            h.innerHTML=''; l.innerHTML='';
+
+            // Stats Logic
+            let tot=0, prog=0, done=0;
+
+            const range = getDateRange();
+            const days = (range.end - range.start)/(1000*60*60*24);
+
+            // Render Header
+            let curr = new Date(range.start);
+            if(viewMode === 'week') {
+                curr.setDate(curr.getDate()-curr.getDay());
+                while(curr <= range.end) {
+                    const d = document.createElement('div');
+                    d.className = 'time-label';
+                    d.style.minWidth = (40*zoom/100)+'px';
+                    d.textContent = 'W'+getWeek(curr);
+                    h.appendChild(d);
+                    curr.setDate(curr.getDate()+7);
+                }
+            } else {
+                curr.setDate(1);
+                while(curr <= range.end) {
+                    const d = document.createElement('div');
+                    d.className = 'time-label';
+                    d.style.minWidth = (100*zoom/100)+'px';
+                    d.textContent = curr.toLocaleString('default', {month:'short', year:'2-digit'});
+                    h.appendChild(d);
+                    curr.setMonth(curr.getMonth()+1);
+                }
+            }
+
+            // Render Tasks
+            const showP = window.projects.filter(p => window.selectedIds.has(p.id));
+            showP.forEach(p => {
+                const ts = filter==='all' ? p.tasks : p.tasks.filter(t=>t.phase===filter);
+                ts.forEach(t => {
+                    tot++;
+                    if(t.progress>=100) done++; else if(t.progress>0) prog++;
+
+                    const r = document.createElement('div');
+                    r.className='task-row';
+                    r.innerHTML = `
+                        <div class="task-name">
+                            <span>${t.name}</span>
+                            <div>
+                                <span style="font-size:10px; cursor:pointer;" onclick="editTask(${p.id}, '${t.id}')">✏️</span>
+                                <span style="font-size:10px; cursor:pointer;" onclick="delTask(${p.id}, '${t.id}')">🗑️</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const tl = document.createElement('div');
+                    tl.className='task-timeline';
+                    
+                    // Grid lines (simplified)
+                    const s = new Date(t.startDate);
+                    const e = new Date(t.endDate);
+                    const left = ((s - range.start)/(1000*60*60*24) / days) * 100;
+                    const w = ((e - s)/(1000*60*60*24) / days) * 100;
+
+                    const bar = document.createElement('div');
+                    bar.className = `task-bar-container`;
+                    bar.style.left = left+'%';
+                    bar.style.width = Math.max(w, 0.5)+'%';
+                    bar.innerHTML = `
+                        <div class="task-bar ${t.phase}" style="width:${t.progress}%"></div>
+                        <div class="task-bar-label">${t.progress}%</div>
+                    `;
+                    
+                    tl.appendChild(bar);
+                    r.appendChild(tl);
+                    l.appendChild(r);
+                });
+            });
+
+            // Update Stats UI
+            document.getElementById('st_total').innerText = tot;
+            document.getElementById('st_progress').innerText = prog;
+            document.getElementById('st_done').innerText = done;
+        };
+
+        function getDateRange() {
+            let s = new Date('2025-01-01');
+            let e = new Date('2025-12-31');
+            // Simplified range logic to prevent errors on empty projects
+            return {start:s, end:e}; 
+        }
+        function getWeek(d) {
+            const onejan = new Date(d.getFullYear(),0,1);
+            return Math.ceil((((d - onejan) / 86400000) + onejan.getDay()+1)/7);
+        }
+
+        window.setViewMode = (m) => { viewMode=m; renderTimeline(); };
+        window.zoomIn = () => { if(zoom<200) zoom+=20; renderTimeline(); };
+        window.zoomOut = () => { if(zoom>50) zoom-=20; renderTimeline(); };
+        window.applyFilter = () => { filter = document.getElementById('phaseFilter').value; renderTimeline(); };
+
     </script>
 </body>
 </html>
